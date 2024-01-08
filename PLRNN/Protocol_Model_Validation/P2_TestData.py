@@ -188,3 +188,20 @@ for indices in range(num_trials):
     val_mse[:,indices] = ms.test_trials_mse(m,tc.from_numpy(test_n[indices]), TT[indices], n_steps)
 MEAN_mse = np.mean(val_mse)
 # %% Correlation
+
+# Correlation between Train model trial and Data per neuron
+DT=[tc.from_numpy(NeuronPattern["Testing_Neuron"][i]).float() for i in range(len(NeuronPattern["Testing_Neuron"]))]
+N = TT[1].size(1)                                                                          # number of neurons
+NT = len(TT)
+rs = tc.zeros((N,NT))                                                                       # initialization of the correlation variable
+
+for nt in range(NT):
+    eps = tc.randn_like(TT[nt]) * 1e-5                                                          # generation of little noise to avoid problems with silent neurons
+    X_eps_noise = TT[nt] + eps                                                                  # adding noise to the signal 
+    for n in range(N):
+        rs[n,nt] = func.pearson_r(X_eps_noise[:, n], DT[nt][:, n])                                      # computation of the pearson correlation
+rs = rs.detach().numpy()
+
+MEAN_Corre=rs.mean()
+
+#%%  Correlation Test trials
