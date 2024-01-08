@@ -77,6 +77,12 @@ def construct_ground_truth(data, n_steps):
 def squared_error(x_pred, x_true):
     return tc.pow(x_pred - x_true, 2)
 
+def test_trials_mse(model,data_true, data_model, n_steps):
+    x_true=construct_ground_truth(data_true,n_steps).to(model.device)
+    x_pred =construct_ground_truth(data_model,n_steps).to(model.device)
+    mse = squared_error(x_pred, x_true).mean([1, 2]).cpu().numpy()
+    return mse
+
 @tc.no_grad()
 def n_steps_ahead_pred_mse(model, data, inputs, n_steps, indices):
     x_pred = get_ahead_pred_obs(model, data, inputs, n_steps, indices)

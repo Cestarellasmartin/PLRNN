@@ -9,26 +9,75 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from tqdm import tqdm
 
-import evaluation_Function_GSA as gsa
 from bptt.models import Model
 from function_modules import model_anafunctions as func
-
+from evaluation import pse as ps
+from evaluation import mse as ms
 plt.rcParams['font.size'] = 20
 
+#%%%% Functions
+def Test_model_trials(ex_path,num_epochs,NeuronPattern,Metadata):
+    print("::Loading Model::")
+    m = Model()
+    m.init_from_model_path(ex_path, epoch=num_epochs)
+    m.eval()
 
+    print(repr(m), f"\nNumber of Parameters: {m.get_num_trainable()}") # get trainable parameters
+    At, W1t, W2t, h1t, h2t, Ct = m.get_latent_parameters()
 
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  LOAD DATA & MODEL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    # Transform tensor to numpy format
+    A = At.detach().numpy()
+    W2 = W2t.detach().numpy().transpose(1,2,0)
+    W1 = W1t.detach().numpy().transpose(1,2,0)
+    h1 = h1t.detach().numpy()
+    h2 = h2t.detach().numpy()
+    C = Ct.detach().numpy()
 
-#data_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/neuralactivity/OFC/CE17/L6/Test1/datasets/' 
-data_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/neuralactivity/OFC/CE17/L6/Test_WholePop/datasets/' 
+    #Setup constant values
+    num_trials=W2.shape[-1] #number of trials
+    num_neurons=W2.shape[0] #number of neurons
+    num_inputs=C.shape[1]   #number of inputs
 
-#model_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/results/Model_Selected/'
-model_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/results/Final_Models/OFC/CE17_L6_221008'
+    print('number of trials :'+ str(num_trials))
+    print('number of neurons :'+ str(num_neurons))
+    print('number of inputs :'+ str(num_inputs))
 
-#model_name = 'Test_01_HU_256_l1_0.001_l2_64_l3_00_SL_400_encdim_64/001'
-model_name = 'Population_HU_512_l1_0.001_l2_08_l3_00_SL_400_encdim_155/001'
+    # W Testing parameters
+    print("::Generating W testing parameters::")
+    print('Set of test trials: ',Metadata["TestTrials"])
 
-mpath=os.path.join(model_path,model_name).replace('\\','/')
+    t_prev = [i for i in Metadata["Training2Test"]]
+    t_post = [i+1 for i in Metadata["Training2Test"]]
+
+    print('trials before test trial: ',t_prev)
+    print('trials after test trial: ',t_post)
+
+    # Computing W matrices for test trials
+    W2_test = np.empty((W2.shape[0],W2.shape[1],len(Metadata["TestTrials"])))
+    W1_test = np.empty((W1.shape[0],W1.shape[1],len(Metadata["TestTrials"])))
+    for i in range(len(t_prev)):
+        W2_test[:,:,i] = (W2[:,:,t_prev[i]]+W2[:,:,t_post[i]])/2.0
+        W1_test[:,:,i] = (W1[:,:,t_prev[i]]+W1[:,:,t_post[i]])/2.0
+    #Generate Latent states
+
+    TT = []
+    #Generate Latent states
+    W1_ind = [tc.from_numpy(W1_test[:,:,i]).float() for i in range(len(t_prev))]
+    W2_ind = [tc.from_numpy(W2_test[:,:,i]).float() for i in range(len(t_prev))]
+    test_tc = [tc.from_numpy(NeuronPattern["Testing_Neuron"][i]).float() for i in range(len(t_prev))]
+    for i in range(len(W1_ind)):
+        data_test=tc.from_numpy(NeuronPattern["Testing_Neuron"][i]).float()
+        input_test=tc.from_numpy(NeuronPattern["Testing_Input"][i]).float()
+        T0=int(len(NeuronPattern["Testing_Neuron"][i]))
+        X, _ = m.generate_test_trajectory(data_test[0:11,:],W2_ind[i],W1_ind[i],input_test, T0,i)
+        TT.append(X)
+    return TT
+
+def openhyper(mpath):
+    file=open(os.path.join(mpath,'hypers.pkl').replace("\\","/"),'rb')
+    hyper=pickle.load(file)
+    file.close()
+    return hyper
 
 def Hyper_mod(mpath,data_path):
     file=open(os.path.join(mpath,'hypers.pkl').replace("\\","/"),'rb')
@@ -41,160 +90,101 @@ def Hyper_mod(mpath,data_path):
     #close save instance 
     full_name.close()
 
-Hyper_mod(mpath,data_path)
+#%%%% Main
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  LOAD DATA & MODEL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#%% MAIN SCRIPT
+
+############################################# Set Paths #######################################################
+# Select Path for Data (Training and Test Trials)
+data_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/neuralactivity/OFC/JG15_190724/datasets/' 
+# Select Path for Models (Folder containing the specific models to test)
+model_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/results/Tuning_OFC_JG15_190724'
+# Select Path for saving Data:
+save_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/results/Tuning_OFC_JG15_190724/Evaluation_Sheets'
+
+
+############################################ Load data ##########################################################
+
 # Load Training & Test Data
 train_n,train_i = func.load_data(data_path,'Training')
 test_n,test_i = func.load_data(data_path,'Test')
+Data_info={"Training_Neuron":train_n,"Training_Input":train_i}
 NeuronPattern={"Training_Neuron":train_n,"Training_Input":train_i,
                "Testing_Neuron":test_n,"Testing_Input":test_i}
-RDataT = [tc.from_numpy(NeuronPattern["Training_Neuron"][w_index]).float() for w_index in range(len(NeuronPattern["Training_Neuron"]))]
 # Load Metadata
 file=open(os.path.join(data_path,'Metadata.pkl'),'rb')
 Metadata=pickle.load(file)
 file.close()
 
-# Load Model
-num_epochs = 199000
+######################################## Test measurements #######################################################
+ex_path=os.path.join(model_path,"JG15_01_HU_128_l1_0.001_l2_0.1_l3_00_SL_400_encdim_74","001").replace('\\','/')
+num_epochs=200000
+#%% Generation of test trials
+Hyper_mod(ex_path,data_path)
+#### Load model
+hyper = openhyper(ex_path)
+save_files=os.listdir(ex_path)
+save_models=[s for s in save_files if "model" in s]
+num_epochs = len(save_models)*hyper["save_step"]
+print("::Loading Model::")
 m = Model()
-m.init_from_model_path(mpath, epoch=num_epochs)
+m.init_from_model_path(ex_path, epoch=num_epochs)
+m.eval()
 
+print(repr(m), f"\nNumber of Parameters: {m.get_num_trainable()}") # get trainable parameters
+_, W1t, W2t, _, _, Ct = m.get_latent_parameters()
 
+# Transform tensor to numpy format
+W2 = W2t.detach().numpy().transpose(1,2,0)
+W1 = W1t.detach().numpy().transpose(1,2,0)
+C = Ct.detach().numpy()
 
+#Setup constant values
+num_trials=len(test_n)#number of trials
+num_neurons=W2.shape[0] #number of neurons
+num_inputs=C.shape[1]   #number of inputs
 
-#%% FUNCTION KULLBACK LEIBLER DIVERGENCE
+print('number of trials :'+ str(num_trials))
+print('number of neurons :'+ str(num_neurons))
+print('number of inputs :'+ str(num_inputs))
 
-#########################################################################################################
-###################################  KULLBACK LEIBLER DIVERGENCE ########################################
-#########################################################################################################
+#%% W Testing parameters
+print("::Generating W testing parameters::")
+print('Set of test trials: ',Metadata["TestTrials"])
 
-# General Measurement: 
-# Differentation of KL divergence in the limiting behaviour for different regions of the behaviour:
-# - Before Session
-# - Inter-Trial Interval (ITI)
-# - After Session
+t_prev = [i for i in Metadata["Training2Test"]]
+t_post = [i+1 for i in Metadata["Training2Test"]]
 
-# This is computed by two methods: SnapShot & NonStationary
+print('trials before test trial: ',t_prev)
+print('trials after test trial: ',t_post)
 
-# Method I: SnapShot
-# We generate a Time Series (Limiting behaviour - simulations after 50000 steps). The Time Series generated
-# is a combination of the last section for each trial simulated. 
-# The length of the last section is the total length of the Real data
+# Computing W matrices for test trials
+W2_test = np.empty((W2.shape[0],W2.shape[1],len(Metadata["TestTrials"])))
+W1_test = np.empty((W1.shape[0],W1.shape[1],len(Metadata["TestTrials"])))
+for i in range(len(t_prev)):
+    W2_test[:,:,i] = (W2[:,:,t_prev[i]]+W2[:,:,t_post[i]])/2.0
+    W1_test[:,:,i] = (W1[:,:,t_prev[i]]+W1[:,:,t_post[i]])/2.0
+#Generate Latent states
 
-# Method II: NonStationary
-# Generation of the Time Series concatenating the output of each trial as initial point of the next one
-# Then we generate a continious Time Series without external inputs to observe the dynamics of the system
-# In this method, we also compute the KL for train and test data
+TT = []
+#Generate Latent states
+W1_ind = [tc.from_numpy(W1_test[:,:,i]).float() for i in range(len(t_prev))]
+W2_ind = [tc.from_numpy(W2_test[:,:,i]).float() for i in range(len(t_prev))]
+test_tc = [tc.from_numpy(NeuronPattern["Testing_Neuron"][i]).float() for i in range(len(t_prev))]
+for i in range(len(W1_ind)):
+    data_test=tc.from_numpy(NeuronPattern["Testing_Neuron"][i]).float()
+    input_test=tc.from_numpy(NeuronPattern["Testing_Input"][i]).float()
+    T0=int(len(NeuronPattern["Testing_Neuron"][i]))
+    X, _ = m.generate_test_trajectory(data_test[0:11,:],W2_ind[i],W1_ind[i],input_test, T0,i)
+    TT.append(X)
 
-############################################## METHOD I ################################################
-
-modeltrials = len(NeuronPattern["Training_Neuron"])                     # Number of Trials                           
-Length_trialB = Metadata["BeforeActivity"].shape[0]                     # Length for each trial simulated 
-Length_trialA = Metadata["AfterActivity"].shape[0]                      # Length for each trial simulated 
-Input_channels= NeuronPattern["Training_Input"][0].shape[1]             # Number of External Inputs
-
-# Selection Session regions without external inputs
-print("Obtaining Inter-Trial Intervals")
-ITI_Trial=[]
-num_traintrials = len(NeuronPattern["Training_Neuron"])
-for i in tqdm(range(num_traintrials),"Obtaining Data"):
-     pos=np.where(np.sum(NeuronPattern["Training_Input"][i],1)==0)
-     ITI_Trial.append(NeuronPattern["Training_Neuron"][i][pos[0],:])
-ZI_Signal,_= gsa.concatenate_list(ITI_Trial,0)
-Length_trialITI = ZI_Signal.shape[0]                                    # Length for each trial simulated 
-
-print("::: Simulating SnapShot data :::")
-print("Before Session")
-Before_Model = gsa.SnapShot_generation(NeuronPattern["Training_Neuron"],Length_trialB,Input_channels,modeltrials,m)
-print("After Session")
-After_Model = gsa.SnapShot_generation(NeuronPattern["Training_Neuron"],Length_trialA,Input_channels,modeltrials,m)
-print("ITI Session")
-ITI_Model = gsa.SnapShot_generation(NeuronPattern["Training_Neuron"],Length_trialITI,Input_channels,modeltrials,m)
-
-assert Before_Model[0].shape[0]==Metadata["BeforeActivity"].shape[0]
-assert After_Model[0].shape[0]==Metadata["AfterActivity"].shape[0]
-assert ITI_Model[0].shape[0]==ZI_Signal.shape[0]
-
-print('::: Computing KL distance ::: Limiting Behaviour :::')
-Total_Neurons = NeuronPattern["Training_Neuron"][0].shape[1]                            # Total Number of Neurons
-subspace_neurons = 20                                                                   # Number of Neurons to Compute KL divergence
-Iteration_KL = 5                                                                            # Number of New Combinations for the subspace of neurons
-
-# Generate List of the Simulations and the Real Data for KL_LimitBehaviour function
-Data=[Before_Model,After_Model,ITI_Model,Metadata["BeforeActivity"],Metadata["AfterActivity"],ZI_Signal]
-# Compute KL divergence
-
-KL_LB = gsa.KL_LimitBehaviour(Data,Total_Neurons,modeltrials,subspace_neurons,Iteration_KL)
-# Save KL divergence 
-np.save("KL_trials",KL_LB)
-
-# KL per Trial
-Mean_KL = KL_LB.mean(2)
-Sem_KL = KL_LB.std(2)/np.sqrt(Iteration_KL)
-# Generate DataFrame to plot the Result
-KL_df = pd.DataFrame({"Before":Mean_KL[:,0],"ITI":Mean_KL[:,1],"After":Mean_KL[:,2]})
-
-############################################## METHOD II ################################################
-
-# Determining lenght of the simulation per trial
-Length_trialB_NS = round(Metadata["BeforeActivity"].shape[0]/modeltrials)                     # Length for each trial simulated 
-Length_trialA_NS = round(Metadata["AfterActivity"].shape[0]/modeltrials)                      # Length for each trial simulated 
-
- # Generation of free trajectories - NON-STATIONARY
-print("::: Generation NonStationary ::: Before Session")
-Before_Signal = gsa.NonStationary_generation(NeuronPattern["Training_Neuron"],Length_trialB_NS,Input_channels,modeltrials,m)
-
-print("::: Generation NonStationary ::: After Session")
-After_Signal = gsa.NonStationary_generation(NeuronPattern["Training_Neuron"],Length_trialA_NS,Input_channels,modeltrials,m)
-
-# Simulating Test and Train Data
-print("::: Generation Train Data :::")
-Train_Signal,_ = gsa.Train_generation(NeuronPattern["Training_Neuron"],NeuronPattern["Training_Input"],modeltrials,m) 
-
-print("::: Generation Test Data :::")
-Test_Signal,_ = gsa.Test_generation(Metadata,NeuronPattern["Testing_Neuron"],NeuronPattern["Testing_Input"],m)
-
-# Selecting Real data with the same length than the generated one
-Before_Real = Metadata["BeforeActivity"][:Before_Signal.shape[0],:]
-After_Real = Metadata["AfterActivity"][:After_Signal.shape[0],:]
-# Concatenating trials of real data to generate one array of the whole time serie
-Train_Real,_ = gsa.concatenate_list(NeuronPattern["Training_Neuron"],0)
-Test_Real,_ = gsa.concatenate_list(NeuronPattern["Testing_Neuron"],0)
-
-# Generate List of the Simulations and the Real Data for TimeSerie_KL_distance function
-Data = [Before_Signal,After_Signal,Train_Signal,Test_Signal,
-        Before_Real,After_Real,Train_Real,Test_Real]
-
-# Compute KL divergence for Time Series
-Series_KL = gsa.TimeSerie_KL_distance(Data,Total_Neurons,subspace_neurons,Iteration_KL)
-
-# Generate DataFrame to plot the Result
-Ser_KLdf = pd.DataFrame({"Before":Series_KL[:,0],"After":Series_KL[:,1],"Train":Series_KL[:,2],"Test":Series_KL[:,3]})
-
-############################################## FIGURES ################################################
-
-# Snapshot Limiting Behaviour Per Trial
-plt.figure()
-plt.plot(Mean_KL[:,0],label="Before")
-plt.plot(Mean_KL[:,1],label="ITI")
-plt.plot(Mean_KL[:,2],label="After")
-plt.title("SnapShot")
-plt.ylabel("KL Divergence")
-plt.xlabel("Trials")
-plt.legend()
-plt.show()
-
-# Mean Value: Snapshot Limiting Behaviour Per Trial
-plt.figure()
-ax=KL_df.boxplot(color='blue',figsize=(5,5))
-ax.set_ylabel("KL divergence")
-ax.set_title("SnapShot")
-plt.show()
-
-# NonStationary Limiting behaviour and Train and Test Data
-plt.figure()
-ax=Ser_KLdf.boxplot(color='blue',figsize=(5,5))
-ax.set_ylabel("KL divergence")
-ax.set_title("NonStationary Time Series")
-plt.show()
-
-# %%
+#%% Mean Squere Error
+# Mean Square Error between model trial and Date per neuron
+n_steps=100
+val_mse = np.empty((n_steps,num_trials))
+for indices in range(num_trials):
+    val_mse[:,indices] = ms.test_trials_mse(m,tc.from_numpy(test_n[indices]), TT[indices], n_steps)
+MEAN_mse = np.mean(val_mse)
+# %% Correlation
