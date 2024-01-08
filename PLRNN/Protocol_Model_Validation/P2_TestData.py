@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 
 import matplotlib.patches as mpatches
 from tqdm import tqdm
+from scipy import signal
 
 from bptt.models import Model
 from function_modules import model_anafunctions as func
@@ -205,3 +206,39 @@ rs = rs.detach().numpy()
 MEAN_Corre=rs.mean()
 
 #%%  Correlation Test trials
+l_train_t=len(train_n) # number of training trials
+rs_training=[]
+i_neu=0
+# Train correlation
+for i_trial in range(l_train_t-1):
+    L1=train_n[i_trial][:,i_neu].shape[0]
+    for i_extra in range(i_trial+1,l_train_t):
+        L2=train_n[i_extra][:,i_neu].shape[0]
+        if L1==L2:
+            T1=tc.from_numpy(train_n[i_trial][:,i_neu])
+            T2=tc.from_numpy(train_n[i_extra][:,i_neu])
+            eps=tc.randn_like(T2)*1e-5
+            X_eps_noise=T2+eps
+            rs=func.pearson_r(X_eps_noise,T1)
+        elif L1<L2:
+            X_rsample = signal.resample(train_n[i_extra][:,i_neu],
+                                train_n[i_trial].shape[0])
+            T1 = tc.from_numpy(train_n[i_trial][:,i_neu])
+            T2 = tc.from_numpy(X_rsample)
+            eps=tc.randn_like(T2)*1e-5
+            X_eps_noise=T2+eps
+            rs=func.pearson_r(X_eps_noise,T1)
+        else:
+            X_rsample = signal.resample(train_n[i_trial][:,i_neu],
+                                train_n[i_extra].shape[0])
+            T1 = tc.from_numpy(X_rsample)
+            T2 = tc.from_numpy(train_n[i_extra][:,i_neu])
+            eps=tc.randn_like(T2)*1e-5
+            X_eps_noise=T2+eps
+            correlation=func.pearson_r(X_eps_noise,T1)
+            correlation=correlation.detach().numpy()
+            rs_training.append(correlation)
+
+plt.figure()
+plt.hist(np.array(rs_training),bins=40)
+# %%
