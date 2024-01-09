@@ -9,6 +9,9 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from tqdm import tqdm
 from scipy import signal
+from scipy.stats import norm
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score
 
 from bptt.models import Model
 from function_modules import model_anafunctions as func
@@ -120,7 +123,7 @@ Metadata=pickle.load(file)
 file.close()
 
 ######################################## Test measurements #######################################################
-ex_path=os.path.join(model_path,"JG15_01_HU_128_l1_0.001_l2_0.1_l3_00_SL_400_encdim_74","001").replace('\\','/')
+ex_path=os.path.join(model_path,"JG15_01_HU_256_l1_0.001_l2_64_l3_00_SL_400_encdim_74","001").replace('\\','/')
 num_epochs=200000
 #%% Generation of test trials
 Hyper_mod(ex_path,data_path)
@@ -206,39 +209,89 @@ rs = rs.detach().numpy()
 MEAN_Corre=rs.mean()
 
 #%%  Correlation Test trials
+corre_list=[]
 l_train_t=len(train_n) # number of training trials
-rs_training=[]
-i_neu=0
-# Train correlation
-for i_trial in range(l_train_t-1):
-    L1=train_n[i_trial][:,i_neu].shape[0]
-    for i_extra in range(i_trial+1,l_train_t):
-        L2=train_n[i_extra][:,i_neu].shape[0]
-        if L1==L2:
-            T1=tc.from_numpy(train_n[i_trial][:,i_neu])
-            T2=tc.from_numpy(train_n[i_extra][:,i_neu])
-            eps=tc.randn_like(T2)*1e-5
-            X_eps_noise=T2+eps
-            rs=func.pearson_r(X_eps_noise,T1)
-        elif L1<L2:
-            X_rsample = signal.resample(train_n[i_extra][:,i_neu],
-                                train_n[i_trial].shape[0])
-            T1 = tc.from_numpy(train_n[i_trial][:,i_neu])
-            T2 = tc.from_numpy(X_rsample)
-            eps=tc.randn_like(T2)*1e-5
-            X_eps_noise=T2+eps
-            rs=func.pearson_r(X_eps_noise,T1)
-        else:
-            X_rsample = signal.resample(train_n[i_trial][:,i_neu],
-                                train_n[i_extra].shape[0])
-            T1 = tc.from_numpy(X_rsample)
-            T2 = tc.from_numpy(train_n[i_extra][:,i_neu])
-            eps=tc.randn_like(T2)*1e-5
-            X_eps_noise=T2+eps
-            correlation=func.pearson_r(X_eps_noise,T1)
-            correlation=correlation.detach().numpy()
-            rs_training.append(correlation)
+norm_neu=[]
+Nnorm_neu=[]
+limit_validation=[]
+for i_neu in range(num_neurons):
+    rs_training=[]
+    # Train correlation
+    for i_trial in range(l_train_t-1):
+        L1=train_n[i_trial][:,i_neu].shape[0]
+        for i_extra in range(i_trial+1,l_train_t):
+            L2=train_n[i_extra][:,i_neu].shape[0]
+            if L1==L2:
+                T1=tc.from_numpy(train_n[i_trial][:,i_neu])
+                T2=tc.from_numpy(train_n[i_extra][:,i_neu])
+                eps=tc.randn_like(T2)*1e-5
+                X_eps_noise=T2+eps
+                correlation=func.pearson_r(X_eps_noise,T1)
+                correlation=correlation.detach().numpy()
+                rs_training.append(correlation)
+            elif L1<L2:
+                X_rsample = signal.resample(train_n[i_extra][:,i_neu],
+                                    train_n[i_trial].shape[0])
+                T1 = tc.from_numpy(train_n[i_trial][:,i_neu])
+                T2 = tc.from_numpy(X_rsample)
+                eps=tc.randn_like(T2)*1e-5
+                X_eps_noise=T2+eps
+                correlation=func.pearson_r(X_eps_noise,T1)
+                correlation=correlation.detach().numpy()
+                rs_training.append(correlation)
+            else:
+                X_rsample = signal.resample(train_n[i_trial][:,i_neu],
+                                    train_n[i_extra].shape[0])
+                T1 = tc.from_numpy(X_rsample)
+                T2 = tc.from_numpy(train_n[i_extra][:,i_neu])
+                eps=tc.randn_like(T2)*1e-5
+                X_eps_noise=T2+eps
+                correlation=func.pearson_r(X_eps_noise,T1)
+                correlation=correlation.detach().numpy()
+                rs_training.append(correlation)
+    n,bins,patches=plt.hist(np.array(rs_training),bins=20,range=(-1,1))
+    corre_list.append(np.array(rs_training))
+    plt.close()
+    data=np.array(rs_training)
+    norm_prob_plot = norm.ppf(np.linspace(0.01, 0.99, len(data)))  # Generate quantiles from a theoretical normal distribution
+    sorted_data = np.sort(data)
 
+    # Create a linear regression model instance
+    model = LinearRegression()
+    # Fit the model to the data
+    model.fit(norm_prob_plot.reshape(-1,1), sorted_data.reshape(-1,1))
+    # Predicting y values using the fitted model
+    y_pred = model.predict(norm_prob_plot.reshape(-1,1))
+    # Calculate R-squared
+    r_squared = r2_score(sorted_data.reshape(-1,1), y_pred)
+    # Testing normality of the correlation
+    if r_squared > 0.98:
+        norm_neu.append(i_neu)
+        # Calculate sample mean and standard deviation
+        sample_mean = np.mean(data)
+        sample_std = np.std(data,ddof=1)  # ddof=1 for sample standard deviation
+        limit_validation.append(sample_mean)#+sample_std)
+    else:
+        Nnorm_neu.append(i_neu)
+        limit_validation.append(999)
+limit_validation=np.array(limit_validation)
+#%% Testing correlation Test Trials
+ratio_tests=[]
+for i in range(num_neurons):
+    pass_test=rs[i,:]>limit_validation[i]
+    ratio_tests.append(sum(pass_test)/len(test_n))
+#Example        
 plt.figure()
-plt.hist(np.array(rs_training),bins=40)
+plt.hist(corre_list[20],bins=20,range=(-1,1))
+plt.axvline(rs[20,3],color='r')
+plt.axvline(limit_validation[20],color='k')
+
+#Plot Neurons Test
+plt.figure()
+plt.hist(np.array(ratio_tests),bins=20,range=(0,1))
+
+# %%
+plt.figure()
+plt.plot(TT[3][:,2])
+plt.plot(test_n[3][:,2])
 # %%
