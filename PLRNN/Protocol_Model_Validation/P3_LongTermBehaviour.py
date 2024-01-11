@@ -71,7 +71,7 @@ def Hyper_mod(mpath,data_path):
     #close save instance 
     full_name.close()
 
-def Long_Term(m_pathway,run):
+def LongTerm_eval(m_pathway,run,data_path,NeuronPattern):
     # Selection Session regions without external inputs. Obtaining Inter-Trial Intervals
     ITI_Trial=[]
     num_traintrials = len(NeuronPattern["Training_Neuron"])
@@ -84,36 +84,14 @@ def Long_Term(m_pathway,run):
 
     mpath=os.path.join(m_pathway,run).replace('\\','/')
     Hyper_mod(mpath,data_path)
-    #### Load model
+    # Load model
     hyper = openhyper(mpath)
     save_files=os.listdir(mpath)
     save_models=[s for s in save_files if "model" in s]
     num_epochs = len(save_models)*hyper["save_step"]
     m = Model()
     m.init_from_model_path(mpath, epoch=num_epochs)
-
-
-    # General Parameters
-    Ntraining_trials=len(NeuronPattern["Training_Neuron"])
-    Ntest_trials = len(NeuronPattern["Testing_Neuron"])
-    num_neurons=NeuronPattern["Training_Neuron"][0].shape[1]
-
-
-def Test_limitPSE(mpath,num_epochs,NeuronPattern):
-    # Selection Session regions without external inputs
-    print("Obtaining Inter-Trial Intervals")
-    ITI_Trial=[]
-    num_traintrials = len(NeuronPattern["Training_Neuron"])
-    for i in tqdm(range(num_traintrials),"Obtaining Data"):
-        pos=np.where(np.sum(NeuronPattern["Training_Input"][i],1)==0)
-        ITI_Trial.append(NeuronPattern["Training_Neuron"][i][pos[0],:])
-    ZI_Signal,_= func.concatenate_list(ITI_Trial,0)
-    Length_trialITI = ZI_Signal.shape[0]                                                                                        # Length for each trial simulated 
-    length_ITI = [len(ITI_Trial[i]) for i in range(len(ITI_Trial))]
-
-    m = Model()
-    m.init_from_model_path(mpath, epoch=num_epochs)
-    m.eval()
+    
     # Input Limit Behaviour
     Warm_time=500000
     TimeLength=Length_trialITI
@@ -122,14 +100,14 @@ def Test_limitPSE(mpath,num_epochs,NeuronPattern):
     Inputs=tc.zeros(Length_data,Input_channels,dtype=tc.float32)
 
     # Generation of free trajectories for limiting behaviour - SNAPSHOT
-    ModelT=[]
+    ModelSS=[]
     for w_index in range(len(NeuronPattern["Training_Neuron"])):
         data_trial=tc.from_numpy(NeuronPattern["Training_Neuron"][w_index]).float()                                             # tensor of neuronal data for initial trial data
         X, _ = m.generate_free_trajectory(data_trial,Inputs,Length_data,w_index)
-        ModelT.append(X[Warm_time+1:,:])
+        ModelSS.append(X[Warm_time+1:,:])
 
     # Generation of free trajectories - NON-STATIONARY 
-    NS_ModelT=[]
+    ModelNS=[]
     total_neu = NeuronPattern["Training_Neuron"][0].shape[1]
     data_trial=tc.from_numpy(NeuronPattern["Training_Neuron"][0][-1,:]).float()                                                 # tensor of neuronal data for initial trial data
     Input_channels= NeuronPattern["Training_Input"][0].shape[1]
@@ -139,37 +117,67 @@ def Test_limitPSE(mpath,num_epochs,NeuronPattern):
         data_trial = tc.reshape(data_trial,(1,total_neu))
         X, _ = m.generate_free_trajectory(data_trial,Inputs,Length_trialITI[i],w_index)
         data_trial=X[-1,:]
-        NS_ModelT.append(X)
+        ModelNS.append(X)
     # Concatenate Trials
-    NS_Signal,Ls_NS_Signal=concatenate_list(NS_ModelT,0)
+    NS_Signal,_ = func.concatenate_list(ModelNS,0)
+    SS_Signal,_ = func.concatenate_list(ModelSS,0)
 
-    # PSE Analysis
-    print('::Computing SnapShot-PSE::')
-    pse_limit = []
-    pse_limitlist=[]
-    for i in range(len(NeuronPattern["Training_Neuron"])):
-        pse,pse_list = ps.power_spectrum_error(ModelT[i][:length_ITI[i],:], ITI_Trial[i])
-        pse_limit.append(pse)
-        pse_limitlist.append(pse_list)
+    # General Parameters
+    num_neurons=NeuronPattern["Training_Neuron"][0].shape[1]
 
-    print('::Computing KL distance::')
-    Dim_kl = int(np.floor(NeuronPattern["Training_Neuron"][0].shape[1]/3))
-    val=np.zeros((len(NeuronPattern["Training_Neuron"]),1))
-    for i in range(len(NeuronPattern["Training_Neuron"])):
-        neu_list = np.array([1,2,3])
-        kl_dim = np.ones([Dim_kl,1])*np.nan
-        for j in range(Dim_kl):
-            kl_dim[j] = kl.calc_kl_from_data(ModelT[i][:length_ITI[i],neu_list],
-                                              tc.tensor(ITI_Trial[i][:,neu_list]))
-            neu_list += 3
-        val[i]=kl_dim.mean()
+    # Snapshot
+    # pse
+    MEAN_pse_ss,_ = ps.power_spectrum_error(tc.tensor(SS_Signal), tc.tensor(ZI_Signal))
 
-    print('::Computing NonStationary-PSE::')
-    pse_ns = []
-    pse_nslist = []
-    pse_ns,pse_nslist = ps.power_spectrum_error(NS_Signal,ZI_Signal)
+    # Kullback Leibler Divergence
+    Dim_kl = int(np.floor(num_neurons/3))
+    neu_list = np.array([1,2,3])
+    kl_dim = np.ones([Dim_kl,1])*np.nan
+    for j in range(Dim_kl):
+        kl_dim[j] = kl.calc_kl_from_data(tc.tensor(SS_Signal[:,neu_list]),
+                                            tc.tensor(ZI_Signal[:,neu_list]))
+        neu_list += 3
+    MEAN_kl_ss = kl_dim.mean()
 
-    return(np.array(pse_limit),np.array(pse_ns),val)
+    #Non-Stationary simulation
+    # pse
+    MEAN_pse_ns,_ = ps.power_spectrum_error(tc.tensor(NS_Signal), tc.tensor(ZI_Signal))
+
+    # Kullback Leibler Divergence
+    Dim_kl = int(np.floor(num_neurons/3))
+    neu_list = np.array([1,2,3])
+    kl_dim = np.ones([Dim_kl,1])*np.nan
+    for j in range(Dim_kl):
+        kl_dim[j] = kl.calc_kl_from_data(tc.tensor(NS_Signal[:,neu_list]),
+                                            tc.tensor(ZI_Signal[:,neu_list]))
+        neu_list += 3
+    MEAN_kl_ns = kl_dim.mean()
+
+    #Hyper-Parameters of the Model
+    Model_Hyper={}
+    #Identification Hidden Units
+    Model_Hyper["HU"] = hyper['dim_hidden']
+    #Identification Parameter Lambda 1
+    Model_Hyper["L1"] = hyper['reg_lambda1'][0]
+    #Identification Parameter Lambda 2
+    Model_Hyper["L2"] = hyper['reg_lambda2'][0]
+    #Identification Parameter Lambda 2
+    Model_Hyper["L3"] = hyper['reg_lambda3'][0]
+    #Identification Sequence Length
+    Model_Hyper["SL"] = hyper['seq_len']
+    
+    #Evaluation of the Model
+    Model_Eval={}
+    #Mean Correlation of the Session vs Model
+    Model_Eval["PSE_SS"] = MEAN_pse_ss
+    #Mean MSE testing in 100 sections for each trial
+    Model_Eval["PSE_NS"] = MEAN_pse_ns
+    #Mean PSE of the whole session. 
+    Model_Eval["KLx_SS"] = MEAN_kl_ss
+    #Mean Kullback leibler divergence of the whole session
+    Model_Eval["KLx_NS"] = MEAN_kl_ns
+
+    return Model_Hyper,Model_Eval
 
 
 #%% MAIN SCRIPT
@@ -187,65 +195,62 @@ save_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/results/Tuning_OF
 
 # Load Training & Test Data
 train_n,train_i = func.load_data(data_path,'Training')
-test_n,test_i = func.load_data(data_path,'Test')
-NeuronPattern={"Training_Neuron":train_n,"Training_Input":train_i,
-               "Testing_Neuron":test_n,"Testing_Input":test_i}
-# Load Metadata
-file=open(os.path.join(data_path,'Metadata.pkl'),'rb')
-Metadata=pickle.load(file)
-file.close()
+Data_info={"Training_Neuron":train_n,"Training_Input":train_i}
 
 ######################################## Test measurements #######################################################
 
-# Computation of limitingbehaviour measurements for the models in your model_path
-model_list=os.listdir(model_path)
-num_epochs=199000                                                       #select the last epoch generated by the model
-
-TimeLength=Metadata["BeforeActivity"].shape[0]
-KL_trials=[]
-KLdistance=[]
-PSE_Nstationary=[]
-PSE_Snapshot=[]
+# Computation of testing measurements for the models in your model_path
+model_list=next(os.walk(model_path))[1]
+#Initialization of evaluations lists
+PSE_S = []
+PSE_N = []
+KLx_S = []
+KLx_N = []
+#Initialization of hyperparameter lists
+Model_name=[]
 RunNumber=[]
-Models=[]
 hidden=[]
 lm1=[]
 lm2=[]
+lm3=[]
 sl=[]
 
-for i in tqdm(model_list):
-    pathway=os.path.join(model_path,i)
-    runs=os.listdir(pathway)
-    for j in tqdm(runs):
-        mpath=os.path.join(pathway,j).replace('\\','/')
-        Hyper_mod(mpath,data_path)
-        hyper_f = openhyper(mpath)
-        PSE_SS,PSE_NS,KLd=Test_limitPSE(mpath,num_epochs,NeuronPattern)
-        PSE_Nstationary = PSE_Nstationary + [PSE_NS]
-        PSE_Snapshot=PSE_Snapshot+[PSE_SS.mean()]
-        KL_trials.append(KLd)
-        KLdistance = KLdistance + [KLd.mean()]
-        #DataFrame Parameters
-        RunNumber=RunNumber+[j]
-        Models=Models+[i]
-        hyper_f = openhyper(mpath)
+for i in tqdm(model_list,"Testing Models: "):
+    pathway=os.path.join(model_path,i).replace('\\','/')
+    runs=next(os.walk(pathway))[1] # taking only the folders with the models
+    for j in runs:
+        Hyper,Eval= LongTerm_eval(pathway,j,data_path,Data_info)
+        # List of evaluations
+        PSE_S.append(Eval["PSE_SS"])
+        PSE_N.append(Eval["PSE_NS"])
+        KLx_S.append(Eval["KLx_SS"])
+        KLx_N.append(Eval["KLx_NS"])
+        # List of Hyper-parameters
+        # Folder's name of the model
+        Model_name.append(i)
+        # Number of the run
+        RunNumber.append(j)
         #Identification Hidden Units
-        hidden_val = hyper_f['dim_hidden']
-        hidden=hidden+[hidden_val]
+        hidden.append(Hyper["HU"])
         #Identification Parameter Lambda 1
-        lm1_val = hyper_f['reg_lambda1'][0]
-        lm1=lm1+[lm1_val]
+        lm1.append(Hyper["L1"])
         #Identification Parameter Lambda 2
-        lm2_val = hyper_f['reg_lambda2'][0]
-        lm2=lm2+[lm2_val]
+        lm2.append(Hyper["L2"])
+        #Identification Parameter Lambda 3
+        lm3.append(Hyper["L3"])
         #Identification Sequence Length
-        sl_val = hyper_f['seq_len']
-        sl=sl+[sl_val]
+        sl.append(Hyper["SL"])
+
 
 ############################################### Saving ############################################################
 
-LimitData={"Models":Models,"Runs":RunNumber,"KLdist":KLdistance,"PSE_NS":PSE_Nstationary,"PSE_SS":PSE_Snapshot,
-          "Hidden":hidden,"Lambda1":lm1,"Lambda2":lm2,"SequenceLength":sl}
+# Saving Data as DataFrame
+LimitData={"Models":Model_name,"Runs":RunNumber,
+           "Hiddn_Units":hidden,"Sequence_Length":sl,
+           "Lambda1":lm1,"Lambda2":lm2,"Lambda3":lm3,
+           "PSE_SS":PSE_S,"PSE_NS":PSE_N,"KLx_SS":KLx_S,
+           "KLx_NS":KLx_N
+          }
 Limitdf=pd.DataFrame(LimitData)
 
 # Check/Create Path
@@ -255,5 +260,5 @@ else:
     os.makedirs(save_path)
     os.chdir(save_path)
 
-Limitdf.to_csv('LimitBehaviour_Population.csv',index=False)
+Limitdf.to_csv('LimitingBehaviour_JG15_190724.csv',index=False)
 # %%

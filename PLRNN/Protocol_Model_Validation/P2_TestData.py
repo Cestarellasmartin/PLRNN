@@ -384,13 +384,13 @@ for i in tqdm(model_list,"Testing Models: "):
 ############################################### Saving ############################################################
 
 # Saving Data as DataFrame
-TrainData={"Models":Model_name,"Runs":RunNumber,
+TestData={"Models":Model_name,"Runs":RunNumber,
            "Hiddn_Units":hidden,"Sequence_Length":sl,
            "Lambda1":lm1,"Lambda2":lm2,"Lambda3":lm3,
            "Correlation":Correlation,"NMSE":NMSE,"PSE":PSE,
            "KLx":KLx,"CEvaluation":CEva
           }
-Traindf=pd.DataFrame(TrainData)
+Testdf=pd.DataFrame(TestData)
 
 # Check/Create Path
 if os.path.exists(save_path):
@@ -399,5 +399,5 @@ else:
     os.makedirs(save_path)
     os.chdir(save_path)
 
-Traindf.to_csv('TestEvaluation_JG15_190724.csv',index=False)
+Testdf.to_csv('TestEvaluation_JG15_190724.csv',index=False)
 # %%
