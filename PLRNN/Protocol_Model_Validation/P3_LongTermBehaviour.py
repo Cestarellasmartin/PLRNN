@@ -71,6 +71,34 @@ def Hyper_mod(mpath,data_path):
     #close save instance 
     full_name.close()
 
+def Long_Term(m_pathway,run):
+    # Selection Session regions without external inputs. Obtaining Inter-Trial Intervals
+    ITI_Trial=[]
+    num_traintrials = len(NeuronPattern["Training_Neuron"])
+    for i in tqdm(range(num_traintrials),"Obtaining Data"):
+        pos=np.where(np.sum(NeuronPattern["Training_Input"][i],1)==0)
+        ITI_Trial.append(NeuronPattern["Training_Neuron"][i][pos[0],:])
+    ZI_Signal,_= func.concatenate_list(ITI_Trial,0)
+    Length_trialITI = ZI_Signal.shape[0]                                                                                        # Length for each trial simulated 
+    length_ITI = [len(ITI_Trial[i]) for i in range(len(ITI_Trial))]
+
+    mpath=os.path.join(m_pathway,run).replace('\\','/')
+    Hyper_mod(mpath,data_path)
+    #### Load model
+    hyper = openhyper(mpath)
+    save_files=os.listdir(mpath)
+    save_models=[s for s in save_files if "model" in s]
+    num_epochs = len(save_models)*hyper["save_step"]
+    m = Model()
+    m.init_from_model_path(mpath, epoch=num_epochs)
+
+
+    # General Parameters
+    Ntraining_trials=len(NeuronPattern["Training_Neuron"])
+    Ntest_trials = len(NeuronPattern["Testing_Neuron"])
+    num_neurons=NeuronPattern["Training_Neuron"][0].shape[1]
+
+
 def Test_limitPSE(mpath,num_epochs,NeuronPattern):
     # Selection Session regions without external inputs
     print("Obtaining Inter-Trial Intervals")
