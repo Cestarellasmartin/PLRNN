@@ -35,6 +35,7 @@ import pickle
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
 from tqdm import tqdm
 from mpl_toolkits.mplot3d import Axes3D
 
@@ -331,28 +332,91 @@ c1 = c1[c1_reg]
 c2 = c2[c2_reg]
 flag=False
 if flag:
-    np.save("D:\\_work_cestarellas\\Analysis\\PLRNN\\noautoencoder\\neuralactivity\\OFC\CE17\\L6\\Test_reduction\\cluster_1.npy",c1)
-    np.save("D:\\_work_cestarellas\\Analysis\\PLRNN\\noautoencoder\\neuralactivity\\OFC\CE17\\L6\\Test_reduction\\cluster_2.npy",c2)
+    np.save("D:\\_work_cestarellas\\Analysis\\PLRNN\\noautoencoder\\neuralactivity\\OFC\\CE17\\L6\\Test_reduction\\cluster_1.npy",c1)
+    np.save("D:\\_work_cestarellas\\Analysis\\PLRNN\\noautoencoder\\neuralactivity\\OFC\\CE17\\L6\\Test_reduction\\cluster_2.npy",c2)
+
+
+#%% Exploring Cluster Selected
+# Generate Continuous signal
+MaxTime=(np.nanmax(STMtx[-1,:])+0.05)*pq.s
+NeuKernel = np.zeros(NumNeu)
+InstRate = []
+NeuralActive = []
+# Bin_size for the instantaneous rate
+InstBs = 0.02*pq.s                                                           # sample period
+InstRt = (1/InstBs).rescale('Hz')                                            # sample rate
+KernelSelect = np.linspace(10*InstBs.magnitude,10,num = 8)                   # possible kernel bandwidth
+KernelWidth=0.4
+for i in tqdm(range(NumNeu)):
+    # Optimal Kernel for the Whole Session
+    Train=neo.SpikeTrain(times = STMtx[~np.isnan(STMtx[:,i]),i]*pq.s,t_stop=MaxTime)    # selection of the Spikes in the session
+    SpikeSet = Train[(Train>StartTrial[0])*(Train<EndTrial[-1])]
+    OptimalFullKernel = el.statistics.optimal_kernel_bandwidth(SpikeSet.magnitude)         # computing convolution for the session
+    MeanFiringRate = np.zeros(NumTrials)                                                # initialization of Mean Firing rate per each trial
+    # Optimal Kernel for each Trial
+    for i_t in range(NumTrials):
+        SpikeSet1 = Train[(Train>StartTrial[i_t])*(Train<EndTrial[i_t])]
+        SpikeSet1.t_start = StartTrial[i_t]*pq.s
+        SpikeSet1.t_stop = EndTrial[i_t]*pq.s
+        MeanFiringRate[i_t] = el.statistics.mean_firing_rate(SpikeSet1)                  # Mean firing rate per trial
+    # Obtaining mean values from trials        
+    NeuralActive.append(MeanFiringRate)
+    #Final convolution for each unit/neuron
+    InstRate.append(el.statistics.instantaneous_rate(Train, sampling_period=InstBs,kernel = el.kernels.GaussianKernel(KernelWidth*pq.s)))    
+
+NeuronTime = np.linspace(0,MaxTime.magnitude,num = int(MaxTime/InstBs))
+NeuralConvolution = np.array(InstRate[:]).squeeze().T
+NeuralConvolution = stats.zscore(NeuralConvolution)
+
+assert NeuralConvolution.shape[0]==NeuronTime.shape[0], 'Problems with the the bin_size of the convolution'
+
+
+SpikeS=NeuralConvolution[:,c1]
+#%% Example
+time_length=np.linspace(0,SpikeS.shape[0]*0.02,SpikeS.shape[0])
+plt.figure()
+plt.plot(time_length,SpikeS[:,:])
+plt.axvline(EndTrial[100]-StartTrial[0])
+plt.axvline(EndTrial[101]-StartTrial[0])
+plt.axvline(EndTrial[102]-StartTrial[0])
+plt.axvline(EndTrial[103]-StartTrial[0])
+plt.axvline(EndTrial[104]-StartTrial[0])
+plt.xlim([570,620])
+#%%
+Tini=StartTrial-StartTrial[0]
+Tend=EndTrial-StartTrial[0]
+var_neu=np.full((StartTrial.shape[0], SpikeS.shape[1]), np.nan)
+for i in range(NumTrials):
+    t0=round(Tini[i]/0.02)
+    t1=round(Tend[i]/0.02)
+    var_neu[i,:]=np.var(SpikeS[t0:t1,:],axis=0)
+
+
+#%% Create a heatmap
+Var_norm=stats.zscore(var_neu)
+plt.figure(figsize=(12,8))
+sns.heatmap(Var_norm.T,cmap='viridis',vmax=12)
+#%% Filter 2
+c1f=np.where(var_neu.mean(axis=0)>0.5)[0]
+
+plt.figure()
+plt.plot(time_length,SpikeS[:,c1f])
+plt.axvline(EndTrial[100]-StartTrial[0])
+plt.axvline(EndTrial[101]-StartTrial[0])
+plt.axvline(EndTrial[102]-StartTrial[0])
+plt.axvline(EndTrial[103]-StartTrial[0])
+plt.axvline(EndTrial[104]-StartTrial[0])
+plt.xlim([570,620])
+SpikeSS=SpikeS[:,c1f]
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#%%
+var_neu=np.full((StartTrial.shape[0], SpikeSS.shape[1]), np.nan)
+for i in range(NumTrials):
+    t0=round(Tini[i]/0.02)
+    t1=round(Tend[i]/0.02)
+    var_neu[i,:]=np.var(SpikeSS[t0:t1,:],axis=0)
 
 
 

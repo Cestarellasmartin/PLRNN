@@ -11,22 +11,22 @@ from mpl_toolkits import mplot3d
 plt.rcParams['font.size'] = 20
 
 #%% Set Paths: Data & Model
-data_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/results/Tuning_OFC_JG15_190724/Evaluation_Sheets'
+data_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/results/Tuning_OFC_CE17_L6_221008/Session_Test/Evaluation_Sheets'
 
 # Load Train Trials Data
-file_name = 'TrainEvaluation_JG15_190724.csv'
+file_name = 'TrainEvaluation_CE17_L6.csv'
 load_file=os.path.join(data_path,file_name).replace('\\','/')
 Traindf = pd.read_csv(load_file)
 
 # Load Test Trials Data
-file_name = 'TestEvaluation_JG15_190724.csv'
+file_name = 'TestEvaluation_CE17_L6.csv'
 load_file=os.path.join(data_path,file_name).replace('\\','/')
 Testdf = pd.read_csv(load_file)
 
 #%% Effect of Lambda2 for specific Hidden Units
-hidden_num=256
-Test_SL = Testdf[(Testdf["Hiddn_Units"]==hidden_num)]
-Train_SL = Traindf[(Traindf["Hiddn_Units"]==hidden_num) & (Traindf["Divergence"]==False)]
+hidden_num=128
+Test_SL = Testdf[(Testdf["Hiddn_Units"]==hidden_num) & (Testdf["Sequence_Length"]==400)]
+Train_SL = Traindf[(Traindf["Hiddn_Units"]==hidden_num) & (Traindf["Sequence_Length"]==400)]
 
 variable_plot = "Lambda2"
 variable_label = "Lambda2"
@@ -72,13 +72,24 @@ red_patch = mpatches.Patch(color='red', label='Train')
 blue_patch = mpatches.Patch(color='blue', label='Test')
 plt.legend(handles=[blue_patch, red_patch],bbox_to_anchor=(1.5, 1.0))
 
-#%% Effect of Lambda2 for specific Hidden Units
-Lambda_num=8
-Test_SL = Testdf[(Testdf["Lambda2"]==Lambda_num)]
-Train_SL = Traindf[(Traindf["Lambda2"]==Lambda_num)]
+# Test acceptance
+# Correlation Test Evaluation
+ax=Test_SL.boxplot(column="CEvaluation",by=variable_plot,color='blue',figsize=(5,5))
+ax.set_xlabel(variable_label)
+ax.set_ylabel("Ratio Passed Test")
+plt.suptitle('')
+plt.title('Hidden Units:'+str(hidden_num))
+red_patch = mpatches.Patch(color='red', label='Train')
+blue_patch = mpatches.Patch(color='blue', label='Test')
+plt.legend(handles=[blue_patch, red_patch],bbox_to_anchor=(1.5, 1.0))
+
+#%% Effect of Hidden Units for specific Lamda2
+Lambda_num=8.0
+Test_SL = Testdf[(Testdf["Lambda2"]==Lambda_num) & (Testdf["Sequence_Length"]==400)]
+Train_SL = Traindf[(Traindf["Lambda2"]==Lambda_num) & (Traindf["Sequence_Length"]==400)]
 
 variable_plot = "Hiddn_Units"
-variable_label = "Hidden_Units"
+variable_label = "Hidden Units"
 # Correlation
 ax=Test_SL.boxplot(column="Correlation",by=variable_plot,color='blue',figsize=(5,5))
 Train_SL.boxplot(column="Correlation",by=variable_plot,ax=ax,color='red')
@@ -120,245 +131,14 @@ plt.title('Lambda2:'+str(Lambda_num))
 red_patch = mpatches.Patch(color='red', label='Train')
 blue_patch = mpatches.Patch(color='blue', label='Test')
 plt.legend(handles=[blue_patch, red_patch],bbox_to_anchor=(1.5, 1.0))
-#%%
-ax=Test_SL.boxplot(column="PSE",by=variable_plot,color='blue',figsize=(5,5))
-Train_SL.boxplot(column="PSE",by=variable_plot,ax=ax,color='red')
+
+# Test acceptance
+# Correlation Test Evaluation
+ax=Test_SL.boxplot(column="CEvaluation",by=variable_plot,color='blue',figsize=(5,5))
 ax.set_xlabel(variable_label)
-ax.set_ylabel("PSE")
+ax.set_ylabel("Ratio Passed Test")
 plt.suptitle('')
-plt.title('')
+plt.title('Lambda2:'+str(Lambda_num))
 red_patch = mpatches.Patch(color='red', label='Train')
 blue_patch = mpatches.Patch(color='blue', label='Test')
 plt.legend(handles=[blue_patch, red_patch],bbox_to_anchor=(1.5, 1.0))
-
-# Mean Square Error (MSE)
-ax1=Test_SL.boxplot(column="NMSE",by=variable_plot,color='blue',figsize=(5,5))
-Train_SL.boxplot(column="NMSE",by=variable_plot,ax=ax1,color='red')
-ax1.set_xlabel(variable_label)
-ax1.set_ylabel("MSE")
-plt.title('')
-plt.suptitle('')
-red_patch = mpatches.Patch(color='red', label='Train')
-blue_patch = mpatches.Patch(color='blue', label='Test')
-plt.legend(handles=[blue_patch, red_patch],bbox_to_anchor=(1.5, 1.0))
-
-
-
-#%%
-# Load LimitBehaviour Data
-file_name = 'LimitBehaviour_subset_CE17_221008.csv'
-load_file=os.path.join(data_path,file_name).replace('\\','/')
-Data = pd.read_csv(load_file)
-
-#%% Effect of the Sequence Length
-
-Test_SL = Testdf[(Testdf["Lambda2"]==1.0) & (Testdf["Hidden"]==512) & (Testdf["Condition"]=="test")]
-Train_SL = Testdf[(Testdf["Lambda2"]==1.0) & (Testdf["Hidden"]==512) & (Testdf["Condition"]=="train")]
-LB_SL = Data[(Data["Lambda2"]==1.0) & (Data["Hidden"]==256)]
-
-variable_plot = "SequenceLength"
-variable_label = "Sequence Length"
-
-ax=Test_SL.boxplot(column="CorrDistance",by=variable_plot,color='blue',figsize=(5,5))
-Train_SL.boxplot(column="CorrDistance",by=variable_plot,ax=ax,color='red')
-ax.set_xlabel(variable_label)
-ax.set_ylabel("Distance Correlation")
-ax.set_ylim([0,1])
-plt.suptitle('')
-plt.title('')
-red_patch = mpatches.Patch(color='red', label='Train')
-blue_patch = mpatches.Patch(color='blue', label='Test')
-plt.legend(handles=[blue_patch, red_patch],bbox_to_anchor=(1.5, 1.0))
-
-ax=Test_SL.boxplot(column="PSE",by=variable_plot,color='blue',figsize=(5,5))
-Train_SL.boxplot(column="PSE",by=variable_plot,ax=ax,color='red')
-ax.set_xlabel(variable_label)
-ax.set_ylabel("PSE")
-plt.suptitle('')
-plt.title('')
-red_patch = mpatches.Patch(color='red', label='Train')
-blue_patch = mpatches.Patch(color='blue', label='Test')
-plt.legend(handles=[blue_patch, red_patch],bbox_to_anchor=(1.5, 1.0))
-
-# Mean Square Error (MSE)
-ax1=Test_SL.boxplot(column="NMSE",by=variable_plot,color='blue',figsize=(5,5))
-Train_SL.boxplot(column="NMSE",by=variable_plot,ax=ax1,color='red')
-ax1.set_xlabel(variable_label)
-ax1.set_ylabel("MSE")
-plt.title('')
-plt.suptitle('')
-red_patch = mpatches.Patch(color='red', label='Train')
-blue_patch = mpatches.Patch(color='blue', label='Test')
-plt.legend(handles=[blue_patch, red_patch],bbox_to_anchor=(1.5, 1.0))
-
-# Behaviour Limit Kullback Leibar Divergence
-ax=LB_SL.boxplot(column="KLdist",by=variable_plot,color='blue',figsize=(5,5))
-ax.set_xlabel(variable_label)
-ax.set_ylabel("KL divergence")
-plt.suptitle('')
-plt.title('')
-
-# Behaviour Limit Kullback Leibar Divergence
-ax=LB_SL.boxplot(column="PSE_NS",by=variable_plot,color='blue',figsize=(5,5))
-ax.set_xlabel(variable_label)
-ax.set_ylabel("PSE_NS")
-plt.suptitle('')
-plt.title('')
-
-# Behaviour Limit Kullback Leibar Divergence
-ax=LB_SL.boxplot(column="PSE_SS",by=variable_plot,color='blue',figsize=(5,5))
-ax.set_xlabel(variable_label)
-ax.set_ylabel("PSE_SS")
-plt.suptitle('')
-plt.title('')
-
-#%% Effect Lambda2
-Test_SL = Testdf[(Testdf["Hidden"]==256.0) & (Testdf["Lambda1"]<100) & (Testdf["SequenceLength"]==400) & (Testdf["Condition"]=="test")]
-Train_SL = Testdf[(Testdf["Hidden"]==256.0) & (Testdf["Lambda1"]<100) & (Testdf["SequenceLength"]==400) & (Testdf["Condition"]=="train")]
-LB_SL = Data[(Data["Hidden"]==256.0) & (Data["Lambda1"]<100) & (Data["SequenceLength"]==400)]
-Test_A = Testdf[(Testdf["Hidden"]==256.0) & (Testdf["Lambda1"]==100) & (Testdf["SequenceLength"]==400) & (Testdf["Condition"]=="test")]
-Train_A = Testdf[(Testdf["Hidden"]==256.0) & (Testdf["Lambda1"]==100) & (Testdf["SequenceLength"]==400) & (Testdf["Condition"]=="train")]
-LB_A = Data[(Data["Hidden"]==256.0) & (Data["Lambda1"]==100) & (Data["SequenceLength"]==400)]
-variable_plot = "Lambda2"
-variable_label = "Lambda 2"
-
-ax=Test_SL.boxplot(column="CorrDistance",by=variable_plot,color='blue',figsize=(5,5))
-Train_SL.boxplot(column="CorrDistance",by=variable_plot,ax=ax,color='red')
-ax.axhline(np.array(Test_A["CorrDistance"])[0],color='blue')
-ax.axhline(np.array(Train_A["CorrDistance"])[0],color='red')
-ax.set_xlabel(variable_label)
-ax.set_ylabel("Distance Correlation")
-ax.set_ylim([0,1])
-plt.suptitle('')
-plt.title('')
-red_patch = mpatches.Patch(color='red', label='Train')
-blue_patch = mpatches.Patch(color='blue', label='Test')
-plt.legend(handles=[blue_patch, red_patch],bbox_to_anchor=(1.5, 1.0))
-
-ax=Test_SL.boxplot(column="PSE",by=variable_plot,color='blue',figsize=(5,5))
-Train_SL.boxplot(column="PSE",by=variable_plot,ax=ax,color='red')
-ax.axhline(np.array(Test_A["PSE"])[0],color='blue')
-ax.axhline(np.array(Train_A["PSE"])[0],color='red')
-ax.set_xlabel(variable_label)
-ax.set_ylabel("PSE")
-plt.suptitle('')
-plt.title('')
-red_patch = mpatches.Patch(color='red', label='Train')
-blue_patch = mpatches.Patch(color='blue', label='Test')
-plt.legend(handles=[blue_patch, red_patch],bbox_to_anchor=(1.5, 1.0))
-
-# Mean Square Error (MSE)
-ax1=Test_SL.boxplot(column="NMSE",by=variable_plot,color='blue',figsize=(5,5))
-Train_SL.boxplot(column="NMSE",by=variable_plot,ax=ax1,color='red')
-ax1.axhline(np.array(Test_A["NMSE"])[0],color='blue')
-ax1.axhline(np.array(Train_A["NMSE"])[0],color='red')
-ax1.set_xlabel(variable_label)
-ax1.set_ylabel("MSE")
-plt.title('')
-plt.suptitle('')
-red_patch = mpatches.Patch(color='red', label='Train')
-blue_patch = mpatches.Patch(color='blue', label='Test')
-plt.legend(handles=[blue_patch, red_patch],bbox_to_anchor=(1.5, 1.0))
-
-# Behaviour Limit Kullback Leibar Divergence
-ax=LB_SL.boxplot(column="KLdist",by=variable_plot,color='blue',figsize=(5,5))
-ax.axhline(np.array(LB_A["KLdist"])[0],color='blue')
-ax.set_xlabel(variable_label)
-ax.set_ylabel("KL divergence")
-plt.suptitle('')
-plt.title('')
-
-# Behaviour Limit Kullback Leibar Divergence
-ax=LB_SL.boxplot(column="PSE",by=variable_plot,color='blue',figsize=(5,5))
-ax.axhline(np.array(LB_A["PSE"])[0],color='blue')
-ax.set_xlabel(variable_label)
-ax.set_ylabel("PSE")
-plt.suptitle('')
-plt.title('')
-
-# # Behaviour Limit Kullback Leibar Divergence
-# ax=LB_SL.boxplot(column="PSE_SS",by=variable_plot,color='blue',figsize=(5,5))
-# ax.set_xlabel(variable_label)
-# ax.set_ylabel("PSE_SS")
-# plt.suptitle('')
-# plt.title('')
-
-#%% Effect Hidden Units
-Test_SL = Testdf[(Testdf["Lambda2"]==8.0) & (Testdf["SequenceLength"]==400) & (Testdf["Condition"]=="test")]
-Train_SL = Testdf[(Testdf["Lambda2"]==8.0) & (Testdf["SequenceLength"]==400) & (Testdf["Condition"]=="train")]
-LB_SL = Data[(Data["Lambda2"]==8.0) & (Data["SequenceLength"]==400)]
-
-variable_plot = "Hidden"
-variable_label = "Hidden Units"
-
-ax=Test_SL.boxplot(column="CorrDistance",by=variable_plot,color='blue',figsize=(5,5))
-Train_SL.boxplot(column="CorrDistance",by=variable_plot,ax=ax,color='red')
-ax.set_xlabel(variable_label)
-ax.set_ylabel("Distance Correlation")
-ax.set_ylim([0,1])
-plt.suptitle('')
-plt.title('')
-red_patch = mpatches.Patch(color='red', label='Train')
-blue_patch = mpatches.Patch(color='blue', label='Test')
-plt.legend(handles=[blue_patch, red_patch],bbox_to_anchor=(1.5, 1.0))
-
-ax=Test_SL.boxplot(column="PSE",by=variable_plot,color='blue',figsize=(5,5))
-Train_SL.boxplot(column="PSE",by=variable_plot,ax=ax,color='red')
-ax.set_xlabel(variable_label)
-ax.set_ylabel("PSE")
-plt.suptitle('')
-plt.title('')
-red_patch = mpatches.Patch(color='red', label='Train')
-blue_patch = mpatches.Patch(color='blue', label='Test')
-plt.legend(handles=[blue_patch, red_patch],bbox_to_anchor=(1.5, 1.0))
-
-# Mean Square Error (MSE)
-ax1=Test_SL.boxplot(column="NMSE",by=variable_plot,color='blue',figsize=(5,5))
-Train_SL.boxplot(column="NMSE",by=variable_plot,ax=ax1,color='red')
-ax1.set_xlabel(variable_label)
-ax1.set_ylabel("MSE")
-plt.title('')
-plt.suptitle('')
-red_patch = mpatches.Patch(color='red', label='Train')
-blue_patch = mpatches.Patch(color='blue', label='Test')
-plt.legend(handles=[blue_patch, red_patch],bbox_to_anchor=(1.5, 1.0))
-
-# Behaviour Limit Kullback Leibar Divergence
-ax=LB_SL.boxplot(column="KLdist",by=variable_plot,color='blue',figsize=(5,5))
-ax.set_xlabel(variable_label)
-ax.set_ylabel("KL divergence")
-plt.suptitle('')
-plt.title('')
-
-# Behaviour Limit Kullback Leibar Divergence
-ax=LB_SL.boxplot(column="PSE_NS",by=variable_plot,color='blue',figsize=(5,5))
-ax.set_xlabel(variable_label)
-ax.set_ylabel("PSE_NS")
-plt.suptitle('')
-plt.title('')
-
-# Behaviour Limit Kullback Leibar Divergence
-ax=LB_SL.boxplot(column="PSE_SS",by=variable_plot,color='blue',figsize=(5,5))
-ax.set_xlabel(variable_label)
-ax.set_ylabel("PSE_SS")
-plt.suptitle('')
-plt.title('')
-#%%
-T1_plot=Testdf[(Testdf["Lambda2"]==1.0) & (Testdf["Condition"]=="test") & (Testdf["SequenceLength"]==400) & (Testdf["Hidden"]!=64)]
-T8_plot=Testdf[(Testdf["Lambda2"]==8.0) & (Testdf["Condition"]=="test") & (Testdf["SequenceLength"]==400)]
-T64_plot=Testdf[(Testdf["Lambda2"]==64.0) & (Testdf["Condition"]=="test") & (Testdf["SequenceLength"]==400)]
-T256_plot=Testdf[(Testdf["Lambda2"]==256.0) & (Testdf["Condition"]=="test") & (Testdf["SequenceLength"]==400)]
-
-ax=T1_plot.boxplot(column="NMSE",by="Hidden",color='blue',figsize=(5,5))
-T8_plot.boxplot(column="NMSE",by="Hidden",ax=ax,color='red')
-T64_plot.boxplot(column="NMSE",by="Hidden",ax=ax,color='green')
-T256_plot.boxplot(column="NMSE",by="Hidden",ax=ax,color='purple')
-ax.set_xlabel("Hidden")
-ax.set_ylabel("NMSE")
-plt.suptitle('')
-plt.title('')
-blue_patch = mpatches.Patch(color='blue', label='Lambda2: 1')
-red_patch = mpatches.Patch(color='red', label='Lambda2: 8')
-green_patch = mpatches.Patch(color='green', label='Lambda2: 64')
-purple_patch = mpatches.Patch(color='purple', label='Lambda2: 256')
-plt.legend(handles=[blue_patch, red_patch, green_patch, purple_patch],bbox_to_anchor=(1.5, 1.0))
