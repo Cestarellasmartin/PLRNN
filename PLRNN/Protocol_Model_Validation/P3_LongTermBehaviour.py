@@ -95,7 +95,7 @@ def LongTerm_eval(m_pathway,run,data_path,NeuronPattern):
     # Input Limit Behaviour
     Warm_time=500000
     TimeLength=Length_trialITI
-    Length_data=TimeLength+1+Warm_time
+    Length_data=TimeLength+Warm_time+1
     Input_channels= NeuronPattern["Training_Input"][0].shape[1]
     Inputs=tc.zeros(Length_data,Input_channels,dtype=tc.float32)
 
@@ -104,18 +104,18 @@ def LongTerm_eval(m_pathway,run,data_path,NeuronPattern):
     for w_index in range(len(NeuronPattern["Training_Neuron"])):
         data_trial=tc.from_numpy(NeuronPattern["Training_Neuron"][w_index]).float()                                             # tensor of neuronal data for initial trial data
         X, _ = m.generate_free_trajectory(data_trial,Inputs,Length_data,w_index)
-        ModelSS.append(X[Warm_time+1:,:])
+        ModelSS.append(X[Warm_time:,:])
 
     # Generation of free trajectories - NON-STATIONARY 
     ModelNS=[]
     total_neu = NeuronPattern["Training_Neuron"][0].shape[1]
     data_trial=tc.from_numpy(NeuronPattern["Training_Neuron"][0][-1,:]).float()                                                 # tensor of neuronal data for initial trial data
     Input_channels= NeuronPattern["Training_Input"][0].shape[1]
-    Inputs=[tc.zeros(Length_trialITI[i],Input_channels,dtype=tc.float32) for i in range(len(NeuronPattern["Training_Neuron"]))]
+    Inputs=[tc.zeros(ITI_Trial[i].shape[0],Input_channels,dtype=tc.float32) for i in range(len(NeuronPattern["Training_Neuron"]))]
 
     for w_index in range(len(NeuronPattern["Training_Neuron"])):
         data_trial = tc.reshape(data_trial,(1,total_neu))
-        X, _ = m.generate_free_trajectory(data_trial,Inputs,Length_trialITI[i],w_index)
+        X, _ = m.generate_free_trajectory(data_trial,Inputs[w_index],ITI_Trial[w_index].shape[0],w_index)
         data_trial=X[-1,:]
         ModelNS.append(X)
     # Concatenate Trials
@@ -184,12 +184,13 @@ def LongTerm_eval(m_pathway,run,data_path,NeuronPattern):
 
 ############################################# Set Paths #######################################################
 # Select Path for Data (Training and Test Trials)
-data_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/neuralactivity/OFC/JG15_190724/datasets/' 
+data_path = 'D:\\_work_cestarellas\\Analysis\\PLRNN\\noautoencoder\\neuralactivity\\OFC\\JG15_190724\\datasets' 
 # Select Path for Models (Folder containing the specific models to test)
-model_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/results/Tuning_OFC_JG15_190724'
+model_path = 'D:\\_work_cestarellas\\Analysis\\PLRNN\\noautoencoder\\results\\Tuning_OFC_JG15_190724'
 # Select Path for saving Data:
-save_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/results/Tuning_OFC_JG15_190724/Evaluation_Sheets'
-
+save_path = 'D:\\_work_cestarellas\\Analysis\\PLRNN\\noautoencoder\\results\\Tuning_OFC_JG15_190724\\Evaluation_Sheets'
+# Select the name for the save file (session name):
+save_name='JG15_190724'
 
 ############################################ Load data ##########################################################
 
@@ -259,6 +260,6 @@ if os.path.exists(save_path):
 else:
     os.makedirs(save_path)
     os.chdir(save_path)
-
-Limitdf.to_csv('LimitingBehaviour_JG15_190724.csv',index=False)
+save_file='LimitingBehaviour_'+save_name+'.csv'
+Limitdf.to_csv(save_file,index=False)
 # %%

@@ -323,7 +323,7 @@ plt.ylabel("FR (Zscore)")
 plt.show()
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SPECIFIC CLUSTERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-c1 = NeuronClusters[0]
+c1 = NeuronClusters[3]
 c2 = NeuronClusters[1]
 # cleaning clusters: All neurons must have at least one spike per trial
 c1_reg=np.where(sum((NeuronsFiringRateSession[:,c1]==0))==0)[0]
@@ -346,7 +346,7 @@ NeuralActive = []
 InstBs = 0.02*pq.s                                                           # sample period
 InstRt = (1/InstBs).rescale('Hz')                                            # sample rate
 KernelSelect = np.linspace(10*InstBs.magnitude,10,num = 8)                   # possible kernel bandwidth
-KernelWidth=0.4
+KernelWidth=0.1
 for i in tqdm(range(NumNeu)):
     # Optimal Kernel for the Whole Session
     Train=neo.SpikeTrain(times = STMtx[~np.isnan(STMtx[:,i]),i]*pq.s,t_stop=MaxTime)    # selection of the Spikes in the session
@@ -362,61 +362,499 @@ for i in tqdm(range(NumNeu)):
     # Obtaining mean values from trials        
     NeuralActive.append(MeanFiringRate)
     #Final convolution for each unit/neuron
-    InstRate.append(el.statistics.instantaneous_rate(Train, sampling_period=InstBs,kernel = el.kernels.GaussianKernel(KernelWidth*pq.s)))    
+    InstRate.append(el.statistics.instantaneous_rate(SpikeSet, sampling_period=InstBs,kernel = el.kernels.GaussianKernel(KernelWidth*pq.s)))    
 
 NeuronTime = np.linspace(0,MaxTime.magnitude,num = int(MaxTime/InstBs))
 NeuralConvolution = np.array(InstRate[:]).squeeze().T
+S=round(StartTrial[0]/0.02)
+E=round(EndTrial[-1]/0.02)
+NeuralConvolution = NeuralConvolution[S:E,:]
+NeuronTime=NeuronTime[S:E]
 NeuralConvolution = stats.zscore(NeuralConvolution)
 
 assert NeuralConvolution.shape[0]==NeuronTime.shape[0], 'Problems with the the bin_size of the convolution'
 
+discard_neu=[]
+for i in range(len(NeuralActive)):
+    if np.where(NeuralActive[i]==0)[0].shape[0]>0:
+        discard_neu.append(i)
 
-SpikeS=NeuralConvolution[:,c1]
-#%% Example
+
+#%%
+# Selction of matrix for clustered neurons
+c1_f=[i for i in c1 if i not in discard_neu]
+SpikeS=NeuralConvolution[:,c1_f]
+# Example of some neurons in consecutive trials
 time_length=np.linspace(0,SpikeS.shape[0]*0.02,SpikeS.shape[0])
 plt.figure()
-plt.plot(time_length,SpikeS[:,:])
-plt.axvline(EndTrial[100]-StartTrial[0])
-plt.axvline(EndTrial[101]-StartTrial[0])
-plt.axvline(EndTrial[102]-StartTrial[0])
-plt.axvline(EndTrial[103]-StartTrial[0])
-plt.axvline(EndTrial[104]-StartTrial[0])
-plt.xlim([570,620])
-#%%
+plt.plot(time_length,SpikeS[:,50])
+plt.xlim([600,608])
+
+# Computing the variance of each neuron per trial
 Tini=StartTrial-StartTrial[0]
 Tend=EndTrial-StartTrial[0]
 var_neu=np.full((StartTrial.shape[0], SpikeS.shape[1]), np.nan)
 for i in range(NumTrials):
     t0=round(Tini[i]/0.02)
     t1=round(Tend[i]/0.02)
-    var_neu[i,:]=np.var(SpikeS[t0:t1,:],axis=0)
+    var_neu[i,:]=np.var(SpikeS[t0:t1,:],axis=0)/(t1-t0)
 
+# Summary of the Neural variance in the session
+from sklearn.linear_model import LinearRegression
+lr=LinearRegression()
+slope=[]
+for i in range(var_neu.shape[1]):
+    lr.fit(np.arange(var_neu[:,i].shape[0]).reshape(-1,1),var_neu[:,i])
+    slope.append(lr.coef_[0])
 
-#%% Create a heatmap
-Var_norm=stats.zscore(var_neu)
+slope=np.array(slope)
+idx=np.argsort(slope)
+var_sort=var_neu[:,idx]
+
 plt.figure(figsize=(12,8))
-sns.heatmap(Var_norm.T,cmap='viridis',vmax=12)
+sns.heatmap(var_sort.T,cmap='viridis',vmax=0.02)
+plt.ylabel("Neurons")
+plt.xlabel("Trials")
+plt.title("Variance map")
+plt.xlim([0,180])
+# Mean Variance for each neuron
+m_var=var_neu.mean(axis=0)
+m_var.sort()
+ratio_var=m_var/np.max(m_var)
+plt.figure(figsize=(5,5))
+plt.plot(ratio_var,'+')
+plt.ylabel("Mean Variance")
+plt.xlabel("Neurons")
+
 #%% Filter 2
-c1f=np.where(var_neu.mean(axis=0)>0.5)[0]
+# Use neurons with higher variance
+c2f=np.where(ratio_var>0.5)[0]
+SpikeSS=SpikeS[:,c2f]
 
 plt.figure()
-plt.plot(time_length,SpikeS[:,c1f])
+plt.plot(time_length,SpikeSS)
 plt.axvline(EndTrial[100]-StartTrial[0])
 plt.axvline(EndTrial[101]-StartTrial[0])
 plt.axvline(EndTrial[102]-StartTrial[0])
 plt.axvline(EndTrial[103]-StartTrial[0])
 plt.axvline(EndTrial[104]-StartTrial[0])
 plt.xlim([570,620])
-SpikeSS=SpikeS[:,c1f]
 
-
-
-#%%
+Tini=StartTrial-StartTrial[0]
+Tend=EndTrial-StartTrial[0]
 var_neu=np.full((StartTrial.shape[0], SpikeSS.shape[1]), np.nan)
 for i in range(NumTrials):
     t0=round(Tini[i]/0.02)
     t1=round(Tend[i]/0.02)
-    var_neu[i,:]=np.var(SpikeSS[t0:t1,:],axis=0)
+    var_neu[i,:]=np.var(SpikeSS[t0:t1,:],axis=0)/(t1-t0)
+
+# Summary of the Neural variance in the session
+
+lr=LinearRegression()
+slope=[]
+for i in range(var_neu.shape[1]):
+    lr.fit(np.arange(var_neu[:,i].shape[0]).reshape(-1,1),var_neu[:,i])
+    slope.append(lr.coef_[0])
+
+slope=np.array(slope)
+idx=np.argsort(slope)
+var_sort=var_neu[:,idx]
+
+plt.figure(figsize=(12,8))
+sns.heatmap(var_sort.T,cmap='viridis',vmax=0.02)
+plt.ylabel("Neurons")
+plt.xlabel("Trials")
+plt.title("Variance map")
+plt.xlim([0,180])
+
+# Mean Variance for each neuron
+m_var=var_neu.mean(axis=0)
+m_var.sort()
+ratio_var=m_var/np.max(m_var)
+plt.figure(figsize=(5,5))
+plt.plot(ratio_var,'+')
+plt.ylabel("Mean Variance")
+plt.xlabel("Neurons")
+
+plt.figure()
+plt.plot(time_length,SpikeSS[:,13])
+plt.xlim([0,620])
+
+
+#%% Exploring the new subset of neurons
+Correlation_Neurons=np.corrcoef(SpikeSS, rowvar=False)
+plt.figure(figsize=(12,8))
+sns.heatmap(Correlation_Neurons.T,cmap='viridis')
+plt.ylabel("Neurons")
+plt.xlabel("Neurons")
+plt.title("Correlation Session")
+
+#Generating list for individual trials
+NAct=[]
+Tini=StartTrial-StartTrial[0]
+Tend=RewardTime-StartTrial[0]
+for i in range(NumTrials):
+    t0=round(Tini[i]/0.02)
+    t1=round(Tend[i]/0.02)
+    NAct.append(SpikeSS[t0:t1,:])
+
+# Compute the correlation between neurons in each trial
+from matplotlib.animation import FuncAnimation
+from IPython.display import HTML
+# Create a figure and axis using Seaborn
+Corr_trial=[]
+fig, ax = plt.subplots(figsize=(8, 6))
+sns.set()
+# Initialize the bar plot
+Correlation_Neurons=np.corrcoef(NAct[0], rowvar=False)
+heatmap = sns.heatmap(Correlation_Neurons, cmap='viridis', cbar=False, vmin=-1, vmax=1)
+def update(frame):
+    ax.clear()
+    Correlation_Neurons=np.corrcoef(NAct[frame], rowvar=False)
+    upp_idx=np.triu_indices_from(Correlation_Neurons,k=1)
+    Corr_trial.append(Correlation_Neurons[upp_idx])
+    heatmap = sns.heatmap(Correlation_Neurons, cmap='viridis', cbar=False, vmin=-1, vmax=1)
+    # Set title and labels
+    ax.set_title(f'Trial {frame}')
+    ax.set_xlabel('Neurons')
+    ax.set_ylabel('Neurons')
+# Create the animation
+animation = FuncAnimation(fig, update, frames=range(NumTrials), interval=500)
+
+# Display the animation in the notebook
+HTML(animation.to_jshtml())
+
+#%%
+pair_n=Corr_trial[0].shape[0]
+C_trans=np.zeros((NumTrials,pair_n))
+for i in range(NumTrials):
+    C_trans[i,:]=Corr_trial[i]
+
+PCACorrT = PCA(n_components=3)
+PCACorrT.fit(C_trans)
+CorrelationState = PCACorrT.transform(C_trans)
+CorrelationScore = PCACorrT.components_.T
+
+colors=np.linspace(0,180,180)
+fig = plt.figure(figsize=(10,10))
+ax = fig.add_subplot(111, projection='3d')
+scatter=ax.scatter(CorrelationState[0:180,0],CorrelationState[0:180,1],CorrelationState[0:180,2],c=colors,cmap='viridis')
+cbar=plt.colorbar(scatter)
+cbar.set_label('Trials')
+ax.set_xlabel('PC1')
+ax.set_ylabel('PC2')
+ax.set_zlabel('PC3')
+
+colors=np.linspace(0,180,180)
+plt.figure(figsize=(10,10))
+scatter2d=plt.scatter(CorrelationState[0:180,0],CorrelationState[0:180,1],c=colors,cmap='viridis')
+cbar=plt.colorbar(scatter2d)
+cbar.set_label('Trials')
+plt.xlabel('PC1')
+plt.ylabel('PC2')
+
+
+Mcorr=C_trans.mean(axis=1)[0:180]
+plt.figure()
+plt.plot(Mcorr)
+plt.xlabel('Trials')
+plt.ylabel('Correlation')
+plt.title('Average Population Correlations')
+#Trial Selection: Decision
+G_Trials = np.array(BehData.index[(BehData['gamble']==1)]).astype(int)
+S_Trials = np.array(BehData.index[(BehData['safe']==1)]).astype(int)
+G_Trials = G_Trials[np.where(G_Trials<180)]
+S_Trials = S_Trials[np.where(S_Trials<180)]
+# Distibution of Correlation for Gamble and Safe decisions
+GMcorr=Mcorr[G_Trials]
+SMcorr=Mcorr[S_Trials]
+plt.figure()
+plt.hist(GMcorr,alpha=0.5,density=True,label="Gamble")
+plt.hist(SMcorr,alpha=0.5,density=True,label="Safe")
+plt.xlabel("Correlation")
+plt.ylabel("Density")
+plt.title("Distribution for side decision")
+plt.legend()
+
+#Trial Selection: Previous output: Reward or No Reward
+R_Trials = np.array(BehData.index[(BehData['REWARD']==1)]).astype(int)
+NR_Trials = np.array(BehData.index[(BehData['REWARD']==0)]).astype(int)
+R_Trials = R_Trials[np.where(R_Trials<179)]
+NR_Trials = NR_Trials[np.where(NR_Trials<179)]
+RMcorr=Mcorr[R_Trials+1]
+NRMcorr=Mcorr[NR_Trials+1]
+plt.figure()
+plt.hist(RMcorr,alpha=0.5,density=True,label="Rewards")
+plt.hist(NRMcorr,alpha=0.5,density=True,label="No Reward")
+plt.xlabel("Correlation")
+plt.ylabel("Density")
+plt.title("Distribution for Reward trials")
+plt.legend()
+
+#Trial Selection: Previous output
+GambleRewardTrials = BehData.index[(BehData['gamble']==1) & (BehData['REWARD']==1)]
+GambleNoRewardTrials =  BehData.index[(BehData['gamble']==1) & (BehData['REWARD']==0)]
+SafeRewardTrials = BehData.index[(BehData['safe']==1) & (BehData['REWARD']==1)]
+SafeNoRewardTrials = BehData.index[(BehData['safe']==1) & (BehData['REWARD']==0)]
+GambleRewardTrials=GambleRewardTrials[np.where(GambleRewardTrials<179)]
+GambleNoRewardTrials=GambleNoRewardTrials[np.where(GambleNoRewardTrials<179)]
+SafeRewardTrials=SafeRewardTrials[np.where(SafeRewardTrials<179)]
+SafeNoRewardTrials=SafeNoRewardTrials[np.where(SafeNoRewardTrials<179)]
+
+GRMcorr=Mcorr[GambleRewardTrials+1]
+GNRMcorr=Mcorr[GambleNoRewardTrials+1]
+SRMcorr=Mcorr[SafeRewardTrials+1]
+SNRMcorr=Mcorr[SafeNoRewardTrials+1]
+plt.figure()
+plt.hist(GRMcorr,alpha=0.5,density=True,label="Reward")
+plt.hist(GNRMcorr,alpha=0.5,density=True,label="No Reward")
+plt.xlabel("Correlation")
+plt.ylabel("Density")
+plt.title("Distribution after Gamble decisions")
+plt.legend()
+
+plt.figure()
+plt.hist(SRMcorr,alpha=0.5,density=True,label="Reward")
+plt.hist(SNRMcorr,alpha=0.5,density=True,label="No Reward")
+plt.xlabel("Correlation")
+plt.ylabel("Density")
+plt.title("Distribution after Safe decisions")
+plt.legend()
+
+#Example
+Correlation_Neurons=np.corrcoef(NAct[22], rowvar=False)
+plt.figure()
+sns.heatmap(Correlation_Neurons, cmap='viridis', cbar=False, vmin=-1, vmax=1)
+#%%
+plt.figure()
+plt.plot(NAct[28][:,3])
+plt.plot(NAct[28][:,48])
+plt.plot(NAct[28][:,46])
+plt.figure()
+plt.plot(NAct[22][:,3])
+plt.plot(NAct[22][:,48])
+plt.plot(NAct[22][:,46])
+
+plt.figure()
+plt.plot(NAct[23][:,3])
+plt.plot(NAct[23][:,48])
+plt.plot(NAct[23][:,46])
+plt.figure()
+plt.plot(NAct[26][:,3])
+plt.plot(NAct[26][:,48])
+plt.plot(NAct[26][:,46])
+
+plt.figure()
+plt.plot(NAct[70][:,3])
+plt.plot(NAct[70][:,48])
+plt.plot(NAct[70][:,46])
+plt.figure()
+plt.plot(NAct[75][:,3])
+plt.plot(NAct[75][:,48])
+plt.plot(NAct[75][:,46])
+plt.figure()
+plt.plot(NAct[78][:,3])
+plt.plot(NAct[78][:,48])
+plt.plot(NAct[78][:,46])
+
+#%%
+plt.figure()
+color=np.linspace(0,NAct[21][:,3].shape[0],NAct[21][:,3].shape[0])
+plt.scatter(NAct[21][:,3],NAct[21][:,48],c=color,cmap='viridis')
+plt.figure()
+color=np.linspace(0,NAct[22][:,3].shape[0],NAct[22][:,3].shape[0])
+plt.scatter(NAct[22][:,3],NAct[22][:,48],c=color,cmap='viridis')
+plt.figure()
+color=np.linspace(0,NAct[23][:,3].shape[0],NAct[23][:,3].shape[0])
+plt.scatter(NAct[23][:,3],NAct[23][:,48],c=color,cmap='viridis')
+
+plt.figure()
+color=np.linspace(0,NAct[56][:,3].shape[0],NAct[56][:,3].shape[0])
+plt.scatter(NAct[56][:,3],NAct[56][:,48],c=color,cmap='viridis')
+plt.figure()
+color=np.linspace(0,NAct[75][:,3].shape[0],NAct[75][:,3].shape[0])
+plt.scatter(NAct[75][:,3],NAct[75][:,48],c=color,cmap='viridis')
+plt.figure()
+color=np.linspace(0,NAct[95][:,3].shape[0],NAct[95][:,3].shape[0])
+plt.scatter(NAct[95][:,3],NAct[95][:,48],c=color,cmap='viridis')
+plt.figure()
+
+gdec=55
+sdec=86
+color1=np.linspace(0,NAct[gdec][:,3].shape[0],NAct[gdec][:,3].shape[0])
+color2=np.linspace(0,NAct[sdec][:,3].shape[0],NAct[sdec][:,3].shape[0])
+plt.scatter(NAct[gdec][:,3],NAct[gdec][:,48],c=color1,cmap='viridis')
+plt.scatter(NAct[sdec][:,3],NAct[sdec][:,48],c=color2,cmap='magma')
+
+plt.figure()
+for gdec in range(50,100):
+    plt.scatter(NAct[gdec][:,3],NAct[gdec][:,48])
+# Set title and labels
+#%% Signal Properties Pre-Decision:
+from scipy import signal
+from scipy.stats import norm
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score
+# Classification of trials in Gamble or Safe decision
+G_Trials = np.array(BehData.index[(BehData['gamble']==1)]).astype(int)
+S_Trials = np.array(BehData.index[(BehData['safe']==1)]).astype(int)
+G_Trials = G_Trials[np.where(G_Trials<180)]
+S_Trials = S_Trials[np.where(S_Trials<180)]
+# Selecting time series before reward point
+Tini=StartTrial-StartTrial[0]
+Tend=RewardTime-StartTrial[0]
+NDec=[]
+for i in range(NumTrials):
+    t0=round(Tini[i]/0.02)
+    t1=round(Tend[i]/0.02)
+    NDec.append(SpikeSS[t0:t1,:])
+
+NG=[NDec[i] for i in G_Trials]
+NS=[NDec[i] for i in S_Trials]
+
+norm_neu=[]
+gambleC=[]
+l_gamble=len(G_Trials)# number of training trials
+num_neurons=SpikeSS.shape[1]
+for i_neu in range(num_neurons):
+    rs_training=[]
+    # Train correlation
+    for i_trial in range(l_gamble):
+        L1=NG[i_trial][:,i_neu].shape[0]
+        for i_extra in range(i_trial+1,l_gamble):
+            L2=NG[i_extra][:,i_neu].shape[0]
+            if L1==L2:
+                T1=NG[i_trial][:,i_neu]
+                T2=NG[i_extra][:,i_neu]
+                eps=np.random.normal(0,1,len(T2))*0.001
+                T2=T2+eps
+                eps=np.random.normal(0,1,len(T2))*0.001
+                T1=T1+eps
+                correlation=np.corrcoef(T1,T2)[0,1]
+                rs_training.append(correlation)
+                if np.isnan(correlation):
+                    plt.figure()
+                    plt.plot(T1)
+                    plt.plot(T2)
+            elif L1<L2:
+                X_rsample = signal.resample(NG[i_extra][:,i_neu],
+                                    NG[i_trial].shape[0])
+                T1 = NG[i_trial][:,i_neu]
+                T2 = X_rsample
+                eps=np.random.normal(0,1,len(T2))*0.001
+                T2=T2+eps
+                eps=np.random.normal(0,1,len(T2))*0.001
+                T1=T1+eps
+                correlation=np.corrcoef(T1,T2)[0,1]
+                rs_training.append(correlation)
+                if np.isnan(correlation):
+                    plt.figure()
+                    plt.plot(T1)
+                    plt.plot(T2)
+            else:
+                X_rsample = signal.resample(NG[i_trial][:,i_neu],
+                                    NG[i_extra].shape[0])
+                T1 = X_rsample
+                T2 = NG[i_extra][:,i_neu]
+                eps=np.random.normal(0,1,len(T2))*0.001
+                T2=T2+eps
+                eps=np.random.normal(0,1,len(T2))*0.001
+                T1=T1+eps
+                correlation=np.corrcoef(T1,T2)[0,1]
+                rs_training.append(correlation)
+                if np.isnan(correlation):
+                    plt.figure()
+                    plt.plot(T1)
+                    plt.plot(T2)
+    data=np.array(rs_training)
+    gambleC.append(data)
+    norm_prob_plot = norm.ppf(np.linspace(0.01, 0.99, len(data)))  # Generate quantiles from a theoretical normal distribution
+    sorted_data = np.sort(data)
+
+    # Create a linear regression model instance
+    model = LinearRegression()
+    # Fit the model to the data
+    model.fit(norm_prob_plot.reshape(-1,1), sorted_data.reshape(-1,1))
+    # Predicting y values using the fitted model
+    y_pred = model.predict(norm_prob_plot.reshape(-1,1))
+    # Calculate R-squared
+    r_squared = r2_score(sorted_data.reshape(-1,1), y_pred)
+    # Testing normality of the correlation
+    if r_squared > 0.98:
+        norm_neu.append(i_neu)
+        # Calculate sample mean and standard deviation
+        sample_mean = np.mean(data)
+        sample_std = np.std(data,ddof=1)  # ddof=1 for sample standard deviation
+#%Testing correlation Test Trials
+
+
+#%%
+plt.figure()
+i_neu=50
+for i_trial in range(len(NG)):
+    plt.plot(NG[i_trial][:,i_neu])
+
+plt.figure()
+plt.hist(gambleC[i_neu])
+
+
+min_trials=np.min(np.array([NG[i].shape[0] for i in range(len(NG))]))
+NG_r=np.zeros((min_trials,len(NG)))
+for i in range(len(NG)):
+    NG_r[:,i]=signal.resample(NG[i][:,i_neu],min_trials)
+
+plt.figure()
+for i_trial in range(len(NG)):
+    plt.plot(NG_r[:,i_trial])
+
+c_neu=np.corrcoef(NG_r)
+plt.figure(figsize=(12,8))
+sns.heatmap(c_neu,cmap='viridis',vmax=1,vmin=-1)
+plt.ylabel("Trials")
+plt.xlabel("Trials")
+plt.title("Correlation Gamble Trials")
+
+
+
+
+min_trials=np.min(np.array([NS[i].shape[0] for i in range(len(NS))]))
+NS_r=np.zeros((min_trials,len(NS)))
+
+for i in range(len(NS)):
+    NS_r[:,i]=signal.resample(NS[i][:,i_neu],min_trials)
+
+c_neu=np.corrcoef(NS_r)
+plt.figure(figsize=(12,8))
+sns.heatmap(c_neu,cmap='viridis',vmax=1,vmin=-1)
+plt.ylabel("Trials")
+plt.xlabel("Trials")
+plt.title("Correlation Safe Trials")
+
+plt.figure()
+for i_trial in range(len(NS)):
+    plt.plot(NS[i_trial][:,i_neu])
+
+
+plt.figure()
+for i_trial in range(len(NS)):
+    plt.plot(NS_r[:,i_trial])
+#%% Signal Properties Post-Decision:
+
+
+plt.figure()
+i_neu=0
+for i_trial in range(16):
+    plt.plot(NG[i_trial][:,i_neu])
+
+
+
+
+
+
+
+
+
+
 
 
 

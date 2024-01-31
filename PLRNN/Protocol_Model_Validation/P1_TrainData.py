@@ -222,12 +222,13 @@ def Training_eval(m_pathway,run,data_path,NeuronPattern):
 
 ############################################# Set Paths #######################################################
 # Select Path for Data (Training and Test Trials)
-data_path = 'D:\\_work_cestarellas\\Analysis\\PLRNN\\noautoencoder\\neuralactivity\\OFC\\CE17\\L6\\Test0\\datasets' 
+data_path = 'D:\\_work_cestarellas\\Analysis\\PLRNN\\noautoencoder\\neuralactivity\\OFC\\JG15_190724\\datasets' 
 # Select Path for Models (Folder containing the specific models to test)
-model_path = 'D:\\_work_cestarellas\\Analysis\\PLRNN\\noautoencoder\\results\\Tuning_OFC_CE17_L6_221008\\Session_Test'
+model_path = 'D:\\_work_cestarellas\\Analysis\\PLRNN\\noautoencoder\\results\\Tuning_OFC_JG15_190724'
 # Select Path for saving Data:
-save_path = 'D:\\_work_cestarellas\\Analysis\\PLRNN\\noautoencoder\\results\\Tuning_OFC_CE17_L6_221008\\Session_Test\\Evaluation_Sheets'
-
+save_path = 'D:\\_work_cestarellas\\Analysis\\PLRNN\\noautoencoder\\results\\Tuning_OFC_JG15_190724\\Evaluation_Sheets'
+# Select the name for the save file (session name):
+save_name='JG15_190724'
 
 ############################################ Load data ##########################################################
 
@@ -302,6 +303,6 @@ if os.path.exists(save_path):
 else:
     os.makedirs(save_path)
     os.chdir(save_path)
-
-Traindf.to_csv('TrainEvaluation_CE17_L6.csv',index=False)
+save_file='TrainEvaluation_'+save_name+'.csv'
+Traindf.to_csv(save_file,index=False)
 # %%
