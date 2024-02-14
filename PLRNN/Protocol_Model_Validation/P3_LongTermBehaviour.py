@@ -94,14 +94,12 @@ def LongTerm_eval(m_pathway,run,data_path,NeuronPattern):
     
     # Input Limit Behaviour
     Warm_time=500000
-    TimeLength=Length_trialITI
-    Length_data=TimeLength+Warm_time+1
     Input_channels= NeuronPattern["Training_Input"][0].shape[1]
-    Inputs=tc.zeros(Length_data,Input_channels,dtype=tc.float32)
-
     # Generation of free trajectories for limiting behaviour - SNAPSHOT
     ModelSS=[]
     for w_index in range(len(NeuronPattern["Training_Neuron"])):
+        Length_data=ITI_Trial[w_index].shape[0]+Warm_time
+        Inputs=tc.zeros(Length_data,Input_channels,dtype=tc.float32)
         data_trial=tc.from_numpy(NeuronPattern["Training_Neuron"][w_index]).float()                                             # tensor of neuronal data for initial trial data
         X, _ = m.generate_free_trajectory(data_trial,Inputs,Length_data,w_index)
         ModelSS.append(X[Warm_time:,:])
