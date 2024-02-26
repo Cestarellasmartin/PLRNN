@@ -27,7 +27,7 @@ model_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/results/Tuning_O
 Act,Inp = func.load_data(data_path,'Training')
 
 #%% Loading models and simulations
-model_name = 'JG15_01_HU_128_l1_0.001_l2_0.1_l3_00_SL_400_encdim_74/001'
+model_name = 'JG15_01_HU_256_l1_0.001_l2_08_l3_00_SL_400_encdim_74/001'
 mpath=os.path.join(model_path,model_name).replace('\\','/')
 
 
@@ -37,7 +37,7 @@ NeuronPattern={"Training_Neuron":train_n,"Training_Input":train_i,
                "Testing_Neuron":test_n,"Testing_Input":test_i}
 
 # Load Model
-num_epochs = 100000
+num_epochs = 200000
 m = Model()
 m.init_from_model_path(mpath, epoch=num_epochs)
 m.eval()
@@ -284,3 +284,5 @@ ax.set_ylabel('Test Score')
 ax.set_title('LDA-PR')
 plt.show()
 
+
+# %%

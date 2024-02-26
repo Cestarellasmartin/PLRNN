@@ -313,13 +313,13 @@ def Testing_eval(m_pathway,run,data_path,NeuronPattern,Metadata):
 
 ############################################# Set Paths #######################################################
 # Select Path for Data (Training and Test Trials)
-data_path = 'D:\\_work_cestarellas\\Analysis\\PLRNN\\noautoencoder\\neuralactivity\\OFC\\JG15_190724\\datasets' 
+data_path = 'D:\\_work_cestarellas\\Analysis\\PLRNN\\noautoencoder\\neuralactivity\\OFC\\CE17_reduction\\datasets' 
 # Select Path for Models (Folder containing the specific models to test)
-model_path = 'D:\\_work_cestarellas\\Analysis\\PLRNN\\noautoencoder\\results\\Tuning_OFC_JG15_190724'
+model_path = 'D:\\_work_cestarellas\\Analysis\\PLRNN\\noautoencoder\\results\\OFC_red'
 # Select Path for saving Data:
-save_path = 'D:\\_work_cestarellas\\Analysis\\PLRNN\\noautoencoder\\results\\Tuning_OFC_JG15_190724\\Evaluation_Sheets'
+save_path = 'D:\\_work_cestarellas\\Analysis\\PLRNN\\noautoencoder\\results\\OFC_red\\Evaluation_Sheets'
 # Select the name for the save file (session name):
-save_name='JG15_190724'
+save_name='CE17_red'
 
 
 ############################################ Load data ##########################################################
