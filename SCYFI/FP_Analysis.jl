@@ -141,7 +141,7 @@ legend=:topleft)
 ##########################################################################################################################################
 
 # Select Trial
-TS=20
+TS=1
 
 # Loading Model
 data=Pickle.npyload("D:/_work_cestarellas/Analysis/PLRNN/SCYFI/data/Model_Parameters/Model_Parameters_CE17_red_001.pkl")
@@ -151,6 +151,7 @@ W₁ = data[2][TS,:,:]
 W₂ = data[3][TS,:,:]
 h₂ = data[4]
 h₁ = data[5]
+C = data[6]
 hidden_dim=size(h₂)[1]
 
 # Working with FPs
@@ -259,12 +260,12 @@ pie(labels, sizes, title="FP $it", legend=true)
 # PCA dimensional reduction
 
 pca_model = fit(PCA, hcat(FP_trials[string(TS)]...)'; maxoutdim=2)
-# group1=[1,2,4]
-# group2=[3]
-# group3=[5,6,7]
-group1=[2,5]
-group2=[1,3]
-group3=[4]
+group1=[1,2,4]
+group2=[3]
+group3=[5,6,7]
+# group1=[1,2]
+# group2=[4]
+# group3=[5,3]
 Plots.scatter(projection(pca_model)[group1,1], projection(pca_model)[group1,2],labels="FP $group1",legend= :outerbottomright,
 tickfontsize=12, legendfontsize=12)
 Plots.scatter!(projection(pca_model)[group2,1], projection(pca_model)[group2,2],labels="FP $group2")
@@ -399,14 +400,111 @@ end
 sub=Plots.plot(pp[1],pp[2],pp[3],pp[4],pp[5],pp[6],layout=(2,3),size=(1024,720))
 
 
+##########################################################################################################################################
+##########################################################################################################################################
+##########################################################################################################################################
+# Distribution of external stimulus
+# Cue Stimulus
+cue_s0=[]
+cue_s1=[]
+Dec_prob=[]
+iti_l=[]
+for i in 1:length(EmpInput)
+    ini_c=findall(x->x==1,diff(EmpInput[i][:,1]))
+    end_c=findall(x->x==-1,diff(EmpInput[i][:,1]))
+    iti=diff(ini_c).-50
+    push!(iti_l,iti)
+    push!(cue_s0,ini_c)
+    push!(cue_s1,end_c)
+    # Decision probability
+    dec_ratio = 1-length(findall(x->x==1,diff(EmpInput[i][:,3])))/length(ini_c)
+    push!(Dec_prob,dec_ratio)
+end
+cue_dist=vcat(cue_s1...)-vcat(cue_s0...)
+iti_dist=vcat(iti_l...)
+
+# Gamble Probability Reward
+block_change = [22,45]
+gamb_prob = Array{Float32}(undef,length(EmpInput))
+for i in 1:length(EmpInput)
+    if i<=block_change[1]
+        gamb_prob[i]=0.75
+    elseif i>block_change[1] & i<=block_change[2]
+        gamb_prob[i]=0.12
+    else
+        gamb_prob[i]=0.25
+    end
+end
+
+# Safe Probability Reward
+safe_prob=0.90
+
+# Creation of virtual trials
+num_virtual_trial=100
+virt_trial=zeros(1,3)
+virt_dec = zeros(num_virtual_trial)
+virt_rew = zeros(num_virtual_trial)
+for vt in 1:num_virtual_trial
+    wheel = zeros(50,3)             # wheel stop 1s
+    lcue=cue_dist[rand(1:length(cue_dist))]  
+    cue = zeros(lcue,3)
+    cue[:,1].=1
+    if rand()<=Dec_prob[TS]
+        virt_dec[vt]=1
+        if rand()<gamb_prob[TS]
+            virt_rew[vt]=1
+            reward=zeros(25,3)
+            reward[:,2].=4
+        else
+            reward=zeros(25,3)
+        end
+    else
+        if rand()<safe_prob
+            virt_rew[vt]=1
+            reward=zeros(25,3)
+            reward[:,2].=1
+        else
+            reward=zeros(25,3)
+        end
+    end
+iti_time = zeros(iti_dist[rand(1:length(iti_dist))],3)
+ind_trial=vcat(wheel,cue,reward,iti_time)
+virt_trial=vcat(virt_trial,ind_trial)
+end
+
+Time_Steps=100000
+warm_up=zeros(Time_Steps,3)
+
+# Creation Stimulus
+Stimulus = vcat(warm_up,virt_trial)
+
+# Select initial condition
+IC= EmpData[TS][1,:]
+num_Z=14
+clipped=true
+Simulation_step=size(Stimulus)[1]
+Gene_Virt=get_latent_input_series(Simulation_step,A,W₁,W₂,h₁,h₂,Stimulus,num_Z,z_0=IC,is_clipped=clipped)
+Gene_trial=hcat(Gene_Virt...)'
 
 
+# Select initial condition
+z = range(0, stop=1, length=20000)
+pp=Vector{Plots.Plot}()
+for i in 1:6
+    ineu1=n1[i]#rand(1:14)
+    ineu2=n2[i]#rand(1:14)
+    p1=Plots.plot(
+        Plots.scatter(matrix_FP[group1,ineu1],matrix_FP[group1,ineu2],tickfontsize=10,legend=false,
+            xlabel="Neuron $ineu1",ylabel="Neuron $ineu2",title="Trial 1"),
+    )
+    Plots.scatter!(matrix_FP[group2,ineu1],matrix_FP[group2,ineu2],tickfontsize=12,legend=false)
+    Plots.scatter!(matrix_FP[group3,ineu1],matrix_FP[group3,ineu2],tickfontsize=12,legend=false)
+    Plots.plot!(Gene_trial[1:100000,ineu1],Gene_trial[1:100000,ineu2],tickfontsize=12,legend=false)
+    Plots.plot!(Gene_trial[100001:120000,ineu1],Gene_trial[10000,:120000,ineu2],linecolor=z,color=:viridis,tickfontsize=12,legend=false)
+    push!(pp, p1)
+end
 
-
-
-
-
-
+sub=Plots.plot(pp[1],pp[2],pp[3],pp[4],pp[5],pp[6],layout=(2,3),size=(1024,720))
 
 
 

@@ -182,13 +182,13 @@ def LongTerm_eval(m_pathway,run,data_path,NeuronPattern):
 
 ############################################# Set Paths #######################################################
 # Select Path for Data (Training and Test Trials)
-data_path = 'D:\\_work_cestarellas\\Analysis\\PLRNN\\noautoencoder\\neuralactivity\\OFC\\CE17_reduction\\datasets' 
+data_path = 'D:\\_work_cestarellas\\Analysis\\PLRNN\\noautoencoder\\neuralactivity\\OFC\\CE17\\L6\\Test0\\datasets' 
 # Select Path for Models (Folder containing the specific models to test)
-model_path = 'D:\\_work_cestarellas\\Analysis\\PLRNN\\noautoencoder\\results\\OFC_red'
+model_path = 'D:\\_work_cestarellas\\Analysis\\PLRNN\\noautoencoder\\results\\Tuning_OFC_CE17_221008'
 # Select Path for saving Data:
-save_path = 'D:\\_work_cestarellas\\Analysis\\PLRNN\\noautoencoder\\results\\OFC_red\\Evaluation_Sheets'
+save_path = 'D:\\_work_cestarellas\\Analysis\\PLRNN\\noautoencoder\\results\\Tuning_OFC_CE17_221008\\Evaluation_Sheets'
 # Select the name for the save file (session name):
-save_name='CE17_red'
+save_name='CE17_221008'
 
 ############################################ Load data ##########################################################
 
