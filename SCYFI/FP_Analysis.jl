@@ -141,7 +141,7 @@ legend=:topleft)
 ##########################################################################################################################################
 
 # Select Trial
-TS=1
+TS=40
 
 # Loading Model
 data=Pickle.npyload("D:/_work_cestarellas/Analysis/PLRNN/SCYFI/data/Model_Parameters/Model_Parameters_CE17_red_001.pkl")
@@ -201,8 +201,8 @@ cust_xtick=[string(x) for x in sort_fp]
 heatmap(Δ₂[sort_fp,sort_fp], color=:viridis, aspect_ratio=:equal, 
 xlabel="FPs", ylabel="FP", title="W₂*FP",
 colorbar_title="Distance")
-xticks!(1:7,cust_xtick)
-yticks!(1:7,cust_xtick)
+xticks!(1:17,cust_xtick)
+yticks!(1:17,cust_xtick)
 xlims!(0.5, num_fp+0.5)
 
 
@@ -211,8 +211,8 @@ cust_xtick=[string(x) for x in sort_fp]
 heatmap(Δ₁[sort_fp,sort_fp], color=:viridis, aspect_ratio=:equal, 
 xlabel="FPs", ylabel="FP", title="W₂*FP+h₂",
 colorbar_title="Distance")
-xticks!(1:7,cust_xtick)
-yticks!(1:7,cust_xtick)
+xticks!(1:17,cust_xtick)
+yticks!(1:17,cust_xtick)
 xlims!(0.5, num_fp+0.5)
 # Working with K-cycles
 
@@ -225,7 +225,7 @@ xlims!(0.5, num_fp+0.5)
 
 # Classification of FPs
 # Select Trial
-it=5
+it=15
 re =real(EV_trials[string(TS)][it])
 ir =imag(EV_trials[string(TS)][it])
 re_pos=findall(x->x==0,ir)
@@ -260,12 +260,22 @@ pie(labels, sizes, title="FP $it", legend=true)
 # PCA dimensional reduction
 
 pca_model = fit(PCA, hcat(FP_trials[string(TS)]...)'; maxoutdim=2)
-group1=[1,2,4]
-group2=[3]
-group3=[5,6,7]
+#Trial 1
+#group1=[1,2,4]
+#group2=[3]
+#group3=[5,6,7]
+#Trial 14
+#group1=[1,2]
+#group2=[3]
+#group3=[4,5]
+#Trial 20
 # group1=[1,2]
 # group2=[4]
 # group3=[5,3]
+#Trial 40
+group1=[1,5,10,11,12,13,17]
+group2=[2,3,4,6]
+group3=[15,16,7,8,9,14]
 Plots.scatter(projection(pca_model)[group1,1], projection(pca_model)[group1,2],labels="FP $group1",legend= :outerbottomright,
 tickfontsize=12, legendfontsize=12)
 Plots.scatter!(projection(pca_model)[group2,1], projection(pca_model)[group2,2],labels="FP $group2")
@@ -284,8 +294,10 @@ EmpData = Pickle.npyload("D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/neur
 EmpInput = Pickle.npyload("D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/neuralactivity/OFC/CE17_reduction/datasets/Training_inputs.npy")  
 
 matrix_FP=hcat(FP_trials[string(TS)]...)'
-n1=[8,14,7,13,3,2]
-n2=[9,10,10,8,9,1]
+# n1=[8,14,7,13,3,2]
+# n2=[9,10,10,8,9,1]
+n1=[14,9,3,11,3,2]
+n2=[9,8,1,8,5,1]
 pp=Vector{Plots.Plot}()
 for i in 1:6
     ineu1=n1[i]#rand(1:14)
@@ -308,7 +320,7 @@ sub=Plots.plot(pp[1],pp[2],pp[3],pp[4],pp[5],pp[6],layout=(2,3),size=(1024,720))
 
 # Select initial condition
 IC= EmpData[TS][26,:]
-Time_Steps=100000
+Time_Steps=1000000
 num_Z=14
 clipped=true
 Gene_Emp=get_latent_time_series(Time_Steps,A,W₁,W₂,h₁,h₂,num_Z,z_0=IC,is_clipped=clipped)
@@ -320,11 +332,11 @@ for i in 1:6
     ineu2=n2[i]#rand(1:14)
     p1=Plots.plot(
         Plots.scatter(matrix_FP[group1,ineu1],matrix_FP[group1,ineu2],tickfontsize=10,legend=false,
-            xlabel="Neuron $ineu1",ylabel="Neuron $ineu2",title="Trial 1"),
+            xlabel="Neuron $ineu1",ylabel="Neuron $ineu2",title="Trial $TS"),
     )
     Plots.scatter!(matrix_FP[group2,ineu1],matrix_FP[group2,ineu2],tickfontsize=12,legend=false)
     Plots.scatter!(matrix_FP[group3,ineu1],matrix_FP[group3,ineu2],tickfontsize=12,legend=false)
-    Plots.plot!(Gene_dat[:,ineu1],Gene_dat[:,ineu2],tickfontsize=12,legend=false)
+    Plots.plot!(Gene_dat[99000:100000,ineu1],Gene_dat[99000:100000,ineu2],tickfontsize=12,legend=false)
     
     push!(pp, p1)
 end
@@ -439,56 +451,73 @@ end
 # Safe Probability Reward
 safe_prob=0.90
 
-# Creation of virtual trials
-num_virtual_trial=100
-virt_trial=zeros(1,3)
-virt_dec = zeros(num_virtual_trial)
-virt_rew = zeros(num_virtual_trial)
-for vt in 1:num_virtual_trial
-    wheel = zeros(50,3)             # wheel stop 1s
-    lcue=cue_dist[rand(1:length(cue_dist))]  
-    cue = zeros(lcue,3)
-    cue[:,1].=1
-    if rand()<=Dec_prob[TS]
-        virt_dec[vt]=1
-        if rand()<gamb_prob[TS]
-            virt_rew[vt]=1
-            reward=zeros(25,3)
-            reward[:,2].=4
+
+function virtual_trials(
+    cue_dist::Vector,
+    Dec_prob::Vector,
+    gamb_prob::Vector,
+    safe_prob::Float64,
+    iti_dist::Vector,
+    IC::Vector)
+        
+    # Creation of virtual trials
+    num_virtual_trial=100
+    virt_trial=zeros(1,3)
+    virt_dec = zeros(num_virtual_trial)
+    virt_rew = zeros(num_virtual_trial)
+    for vt in 1:num_virtual_trial
+        wheel = zeros(50,3)             # wheel stop 1s
+        lcue=cue_dist[rand(1:length(cue_dist))]  
+        cue = zeros(lcue,3)
+        cue[:,1].=1
+        # Gamble choice
+        if rand()<=Dec_prob[TS]
+            virt_dec[vt]=1
+            # Probability of gamble reward
+            if rand()<gamb_prob[TS]
+                # Yes Reward
+                virt_rew[vt]=1
+                reward=zeros(25,3)
+                reward[:,2].=4
+            else
+                # No Reward
+                reward=zeros(25,3)
+            end
+        # Safe choice
         else
-            reward=zeros(25,3)
+            if rand()<safe_prob
+                # Yes Reward
+                virt_rew[vt]=1
+                reward=zeros(25,3)
+                reward[:,2].=1
+            else
+                # No Reward
+                reward=zeros(25,3)
+            end
         end
-    else
-        if rand()<safe_prob
-            virt_rew[vt]=1
-            reward=zeros(25,3)
-            reward[:,2].=1
-        else
-            reward=zeros(25,3)
-        end
+    iti_time = zeros(iti_dist[rand(1:length(iti_dist))],3)
+    ind_trial=vcat(wheel,cue,reward,iti_time)
+    virt_trial=vcat(virt_trial,ind_trial)
     end
-iti_time = zeros(iti_dist[rand(1:length(iti_dist))],3)
-ind_trial=vcat(wheel,cue,reward,iti_time)
-virt_trial=vcat(virt_trial,ind_trial)
+
+    # Initialization of the external inputs for the simulation
+    Time_Steps=100000
+    warm_up=zeros(Time_Steps,3)
+    # Creation Stimulus
+    Stimulus = vcat(warm_up,virt_trial)
+    # Select initial condition
+    num_Z=14
+    clipped=true
+    Simulation_step=size(Stimulus)[1]
+    Gene_Virt=get_latent_input_series(Simulation_step,A,W₁,W₂,h₁,h₂,Stimulus,num_Z,z_0=IC,is_clipped=clipped)
+    Gene_trial=hcat(Gene_Virt...)'
+    return Gene_trial
 end
 
-Time_Steps=100000
-warm_up=zeros(Time_Steps,3)
 
-# Creation Stimulus
-Stimulus = vcat(warm_up,virt_trial)
+Virt_Trial = virtual_trials(cue_dist,Dec_prob,gamb_prob,safe_prob,iti_dist,EmpData[TS][1,:])
 
 # Select initial condition
-IC= EmpData[TS][1,:]
-num_Z=14
-clipped=true
-Simulation_step=size(Stimulus)[1]
-Gene_Virt=get_latent_input_series(Simulation_step,A,W₁,W₂,h₁,h₂,Stimulus,num_Z,z_0=IC,is_clipped=clipped)
-Gene_trial=hcat(Gene_Virt...)'
-
-
-# Select initial condition
-z = range(0, stop=1, length=20000)
 pp=Vector{Plots.Plot}()
 for i in 1:6
     ineu1=n1[i]#rand(1:14)
@@ -499,8 +528,8 @@ for i in 1:6
     )
     Plots.scatter!(matrix_FP[group2,ineu1],matrix_FP[group2,ineu2],tickfontsize=12,legend=false)
     Plots.scatter!(matrix_FP[group3,ineu1],matrix_FP[group3,ineu2],tickfontsize=12,legend=false)
-    Plots.plot!(Gene_trial[1:100000,ineu1],Gene_trial[1:100000,ineu2],tickfontsize=12,legend=false)
-    Plots.plot!(Gene_trial[100001:120000,ineu1],Gene_trial[10000,:120000,ineu2],linecolor=z,color=:viridis,tickfontsize=12,legend=false)
+    Plots.plot!(Virt_Trial[1:100000,ineu1],Virt_Trial[1:100000,ineu2],tickfontsize=12,legend=false)
+    Plots.plot!(Virt_Trial[100000:120000,ineu1],Virt_Trial[100000:120000,ineu2],tickfontsize=12,legend=false)
     push!(pp, p1)
 end
 
@@ -508,3 +537,187 @@ sub=Plots.plot(pp[1],pp[2],pp[3],pp[4],pp[5],pp[6],layout=(2,3),size=(1024,720))
 
 
 
+##########################################################################################################################################
+##########################################################################################################################################
+##########################################################################################################################################
+
+# Exploring the Attractors
+
+Gam_prob=Dec_prob
+Reward_prob=gamb_prob
+# Gamble Reward
+Gam_prob.=1
+Reward_prob.=1
+Virt_GReward = virtual_trials(cue_dist,Gam_prob,Reward_prob,safe_prob,iti_dist,EmpData[TS][1,:])
+# Gamble No Reward
+Gam_prob.=1.0
+Reward_prob.=0.0
+Virt_GNOReward = virtual_trials(cue_dist,Gam_prob,Reward_prob,Reward_safe,iti_dist,EmpData[TS][1,:])
+# Safe Reward
+Gam_prob.=0
+Reward_safe=1.0
+Virt_SReward = virtual_trials(cue_dist,Gam_prob,Reward_prob,Reward_safe,iti_dist,EmpData[TS][1,:])
+# Safe No Reward
+Gam_prob.=0
+Reward_safe=0.0
+Virt_SNOReward = virtual_trials(cue_dist,Gam_prob,Reward_prob,Reward_safe,iti_dist,EmpData[TS][1,:])
+
+
+# Select initial condition
+pp=Vector{Plots.Plot}()
+for i in 1:6
+    ineu1=n1[i]#rand(1:14)
+    ineu2=n2[i]#rand(1:14)
+    p1=Plots.plot(
+        Plots.plot(Virt_GReward[1:100000,ineu1],Virt_GReward[1:100000,ineu2],tickfontsize=12,legend=false,
+        xlabel="Neuron $ineu1",ylabel="Neuron $ineu2",title="Trial $TS"),
+    )
+    Plots.plot!(Virt_GReward[100000:110000,ineu1],Virt_GReward[100000:110000,ineu2],color=:green,
+    tickfontsize=12,legend=false)
+    Plots.plot!(Virt_SReward[100000:110000,ineu1],Virt_SReward[100000:110000,ineu2],color=:orange,
+    tickfontsize=12,legend=false)
+    Plots.scatter!(matrix_FP[group1,ineu1],matrix_FP[group1,ineu2],tickfontsize=12,legend=false)
+    Plots.scatter!(matrix_FP[group2,ineu1],matrix_FP[group2,ineu2],tickfontsize=12,legend=false)
+    Plots.scatter!(matrix_FP[group3,ineu1],matrix_FP[group3,ineu2],tickfontsize=12,legend=false)
+    push!(pp, p1)
+end
+sub=Plots.plot(pp[1],pp[2],pp[3],pp[4],pp[5],pp[6],layout=(2,3),size=(1024,720))
+
+
+pp=Vector{Plots.Plot}()
+for i in 1:6
+    ineu1=n1[i]#rand(1:14)
+    ineu2=n2[i]#rand(1:14)
+    p1=Plots.plot(
+        Plots.plot(Virt_GNOReward[1:100000,ineu1],Virt_GNOReward[1:100000,ineu2],tickfontsize=12,legend=false,
+        xlabel="Neuron $ineu1",ylabel="Neuron $ineu2",title="Trial $TS"),
+    )
+    Plots.plot!(Virt_GNOReward[1:100000,ineu1],Virt_GNOReward[1:100000,ineu2],tickfontsize=12,legend=false)
+    Plots.plot!(Virt_GNOReward[100000:110000,ineu1],Virt_GNOReward[100000:110000,ineu2],color=:grey,
+    tickfontsize=12,legend=false)
+    Plots.plot!(Virt_GReward[1:100000,ineu1],Virt_GReward[1:100000,ineu2],tickfontsize=12,legend=false)
+    Plots.plot!(Virt_GReward[100000:110000,ineu1],Virt_GReward[100000:110000,ineu2],color=:green,
+    tickfontsize=12,legend=false)
+    Plots.scatter!(matrix_FP[group1,ineu1],matrix_FP[group1,ineu2],tickfontsize=12,legend=false)
+    Plots.scatter!(matrix_FP[group2,ineu1],matrix_FP[group2,ineu2],tickfontsize=12,legend=false)
+    Plots.scatter!(matrix_FP[group3,ineu1],matrix_FP[group3,ineu2],tickfontsize=12,legend=false)
+    push!(pp, p1)
+end
+
+sub=Plots.plot(pp[1],pp[2],pp[3],pp[4],pp[5],pp[6],layout=(2,3),size=(1024,720))
+
+
+pp=Vector{Plots.Plot}()
+for i in 1:6
+    ineu1=n1[i]#rand(1:14)
+    ineu2=n2[i]#rand(1:14)
+    p1=Plots.plot(
+        Plots.plot(Virt_GNOReward[1:100000,ineu1],Virt_GNOReward[1:100000,ineu2],tickfontsize=12,legend=false,
+        xlabel="Neuron $ineu1",ylabel="Neuron $ineu2",title="Trial $TS"),
+    )
+    Plots.plot!(Virt_SNOReward[1:100000,ineu1],Virt_SNOReward[1:100000,ineu2],tickfontsize=12,legend=false)
+    Plots.plot!(Virt_SNOReward[100000:110000,ineu1],Virt_SNOReward[100000:110000,ineu2],color=:grey,
+    tickfontsize=12,legend=false)
+    Plots.plot!(Virt_SReward[1:100000,ineu1],Virt_SReward[1:100000,ineu2],tickfontsize=12,legend=false)
+    Plots.plot!(Virt_SReward[100000:110000,ineu1],Virt_SReward[100000:110000,ineu2],color=:orange,
+    tickfontsize=12,legend=false)
+    Plots.scatter!(matrix_FP[group1,ineu1],matrix_FP[group1,ineu2],tickfontsize=12,legend=false)
+    Plots.scatter!(matrix_FP[group2,ineu1],matrix_FP[group2,ineu2],tickfontsize=12,legend=false)
+    Plots.scatter!(matrix_FP[group3,ineu1],matrix_FP[group3,ineu2],tickfontsize=12,legend=false)
+    push!(pp, p1)
+end
+
+sub=Plots.plot(pp[1],pp[2],pp[3],pp[4],pp[5],pp[6],layout=(2,3),size=(1024,720))
+
+
+##########################################################################################################################################
+##########################################################################################################################################
+##########################################################################################################################################
+
+
+# Understanding FPs
+FP1=reshape(vcat(FP_trials["1"]...),(size(FP_trials["1"])[1],14))
+FP2=reshape(vcat(FP_trials["14"]...),(size(FP_trials["14"])[1],14))
+FP3=reshape(vcat(FP_trials["20"]...),(size(FP_trials["20"])[1],14))
+FP4=reshape(vcat(FP_trials["40"]...),(size(FP_trials["40"])[1],14))
+FP_Session=vcat(FP1,FP2,FP3,FP4)
+
+
+pca_model = fit(PCA, FP_Session; maxoutdim=2)
+#Trial 1
+#group1=[1,2,4]
+#group2=[3]
+#group3=[5,6,7]
+#Trial 14
+#group1=[1,2]
+#group2=[3]
+#group3=[4,5]
+#Trial 20
+group1=[i for i in range(1,7)]
+group2=[i for i in range(8,12)]
+group3=[i for i in range(13,17)]
+group4=[i for i in range(18,34)]
+Plots.scatter(projection(pca_model)[group1[1]:group1[end],1], projection(pca_model)[group1[1]:group1[end],2], labels="FP $group1",legend= :outerbottom,
+tickfontsize=12, legendfontsize=12, size=(1080,900))
+Plots.scatter!(projection(pca_model)[group2[1]:group2[end],1], projection(pca_model)[group2[1]:group2[end],2],labels="FP $group2")
+Plots.scatter!(projection(pca_model)[group3[1]:group3[end],1], projection(pca_model)[group3[1]:group3[end],2],labels="FP $group3")
+Plots.scatter!(projection(pca_model)[group4[1]:group4[end],1], projection(pca_model)[group4[1]:group4[end],2],labels="FP $group4")
+Plots.xlabel!("PC1")
+Plots.ylabel!("PC2")
+Plots.title!("FPs reduced dimensions")
+
+
+##########################################################################################################################################
+##########################################################################################################################################
+##########################################################################################################################################
+
+# 
+
+
+Diag_dir=zeros(14,2,17)
+
+for ifp in 1:17
+    un_imag=unique(abs.(imag(EV_trials["40"][ifp])))
+    for i in eachindex(un_imag)
+        pos_x=findall(x->x==un_imag[i],abs.(imag(EV_trials["40"][ifp])))
+        if un_imag[i]==0
+            Diag_dir[pos_x,2,ifp]=-1*pos_x
+        else
+            Diag_dir[pos_x,2,ifp]=pos_x
+        end
+        pos_y=findall(x->x>0,real(EV_trials["40"][ifp]))
+        Diag_dir[pos_y,1,ifp]=pos_y
+        pos_y=findall(x->x<0,real(EV_trials["40"][ifp]))
+        Diag_dir[pos_y,1,ifp]=-1*pos_y
+    end
+end
+
+
+
+Plots.scatter(Diag_dir[:,2,1],Diag_dir[:,1,1])
+Plots.xlims!(-15,15)
+Plots.ylims!(-15,15)
+
+Plots.scatter(Diag_dir[:,2,2],Diag_dir[:,1,2])
+Plots.xlims!(-15,15)
+Plots.ylims!(-15,15)
+
+Plots.scatter(Diag_dir[:,2,3],Diag_dir[:,1,3])
+Plots.xlims!(-15,15)
+Plots.ylims!(-15,15)
+
+Plots.scatter(Diag_dir[:,2,4],Diag_dir[:,1,4])
+Plots.xlims!(-15,15)
+Plots.ylims!(-15,15)
+
+Plots.scatter(Diag_dir[:,2,5],Diag_dir[:,1,5])
+Plots.xlims!(-15,15)
+Plots.ylims!(-15,15)
+
+Plots.scatter(Diag_dir[:,2,6],Diag_dir[:,1,6])
+Plots.xlims!(-15,15)
+Plots.ylims!(-15,15)
+
+Plots.scatter(Diag_dir[:,2,7],Diag_dir[:,1,7])
+Plots.xlims!(-15,15)
+Plots.ylims!(-15,15)
