@@ -14,7 +14,7 @@ include("D:/_work_cestarellas/Analysis/PLRNN/SCYFI/src/utilities/helpers.jl")
 ##########################################################################################################################################
 # Organization of Fixed Points and Cycles limits determined in the trials of the session
 
-folder_path="D:\\_work_cestarellas\\Analysis\\PLRNN\\SCYFI\\data\\CE17_red"
+folder_path="D:\\_work_cestarellas\\Analysis\\PLRNN\\SCYFI\\data\\CE17_red_000"
 files=readdir(folder_path)
 num_trials=length(files)
 FP_trials=Dict()
@@ -56,7 +56,7 @@ for tr in 1:num_trials
             else
             # K-cycle > 1
                 for iob in 1:num_ob
-                    flag=maximum(diff(DO[iob])).>0.000001
+                    flag=maximum(diff(DO[iob])).>0.00001
                     if sum(flag)>0
                         push!(FP,DO[iob])
                         push!(EV,EO[iob])
@@ -117,14 +117,15 @@ for i in 1:num_trials
     end
 end
 
+limit_do=maximum(FP_num.+KCY_num)
 groupedbar([FP_num KCY_num],
 bar_position= :stack,
 bar_width=0.5,
 xlabel="Trials",ylabel="# of Different Objects",
 title="FP and Cycles detected in the session",
 label=["FP" "K-cycles"],
-yticks=(1:15),
-legend=:topleft)
+yticks=(1:limit_do),
+legend=:outertopright)
 
 
 groupedbar([ST_num UNST_num BIST_num],
@@ -132,16 +133,16 @@ bar_position= :stack,
 bar_width=0.5,
 xlabel="Trials",ylabel="# of Different Objects",
 title="FP and Cycles detected in the session",
-label=["Stable" "Unstable" "Bistable"],
-yticks=(1:15),
-legend=:topleft)
+label=["Stable" "Unstable" "Multitable"],
+yticks=(1:limit_do),
+legend=:outertopright)
 
 ##########################################################################################################################################
 ##########################################################################################################################################
 ##########################################################################################################################################
 
 # Select Trial
-TS=40
+TS=44
 
 # Loading Model
 data=Pickle.npyload("D:/_work_cestarellas/Analysis/PLRNN/SCYFI/data/Model_Parameters/Model_Parameters_CE17_red_001.pkl")
@@ -225,7 +226,7 @@ xlims!(0.5, num_fp+0.5)
 
 # Classification of FPs
 # Select Trial
-it=15
+it=9
 re =real(EV_trials[string(TS)][it])
 ir =imag(EV_trials[string(TS)][it])
 re_pos=findall(x->x==0,ir)
@@ -252,7 +253,7 @@ end
 labels=["Stable node", "Unstable node", "Stable spiral","Unstable spiral"]
 sizes =[s_node,uns_node,num_pairs*2,num_pairu*2]
 sizes =sizes/sum(sizes)
-pie(labels, sizes, title="FP $it", legend=true)
+pie(labels, sizes, title="FP $it", legend=false)
 
 ##########################################################################################################################################
 ##########################################################################################################################################
@@ -261,9 +262,9 @@ pie(labels, sizes, title="FP $it", legend=true)
 
 pca_model = fit(PCA, hcat(FP_trials[string(TS)]...)'; maxoutdim=2)
 #Trial 1
-#group1=[1,2,4]
-#group2=[3]
-#group3=[5,6,7]
+group1=[1,2,6]
+group2=[4,3]
+group3=[5,7,8,9]
 #Trial 14
 #group1=[1,2]
 #group2=[3]
@@ -272,10 +273,13 @@ pca_model = fit(PCA, hcat(FP_trials[string(TS)]...)'; maxoutdim=2)
 # group1=[1,2]
 # group2=[4]
 # group3=[5,3]
+# group1=[1]
+# group2=[1]
+# group3=[1]
 #Trial 40
-group1=[1,5,10,11,12,13,17]
-group2=[2,3,4,6]
-group3=[15,16,7,8,9,14]
+# group1=[1,5,10,11,12,13,17]
+# group2=[2,3,4,6]
+# group3=[15,16,7,8,9,14]
 Plots.scatter(projection(pca_model)[group1,1], projection(pca_model)[group1,2],labels="FP $group1",legend= :outerbottomright,
 tickfontsize=12, legendfontsize=12)
 Plots.scatter!(projection(pca_model)[group2,1], projection(pca_model)[group2,2],labels="FP $group2")
@@ -316,6 +320,50 @@ end
 sub=Plots.plot(pp[1],pp[2],pp[3],pp[4],pp[5],pp[6],layout=(2,3),size=(1024,720))
 
 
+# Distance of the Data in the Regions
+
+# Quadrant Distance between Dynamical objects
+series_length = size(EmpData[TS])[1]
+Δ₁ = fill(NaN,(num_fp,series_length))
+Δ₂ = fill(NaN,(num_fp,series_length))
+
+# Quadrant FP1
+for i0 in 1:num_fp
+    FP=FP_trials[string(TS)][i0]
+    # get D matrices from
+    D₁ = Array{Bool}(undef, hidden_dim, hidden_dim, korder)
+    D₂ = Array{Bool}(undef, hidden_dim, hidden_dim, korder)
+    D₁[:,:,1]=Diagonal((W₂*FP + h₂).>0)                    
+    D₂[:,:,1]=Diagonal((W₂*FP).>0)
+    # Quadrant FP2
+    
+    for i1 in 1:series_length
+        FP2=EmpData[TS][i1,:]
+        # get D matrices from
+        DF₁ = Array{Bool}(undef, hidden_dim, hidden_dim, korder)
+        DF₂ = Array{Bool}(undef, hidden_dim, hidden_dim, korder)
+        DF₁[:,:,korder]=Diagonal((W₂*FP2 + h₂).>0)                    
+        DF₂[:,:,korder]=Diagonal((W₂*FP2).>0)
+        Δ₁[i0,i1] = sum(abs.(D₁-DF₁))
+        Δ₂[i0,i1] = sum(abs.(D₂-DF₂))
+    end
+end
+pp=Vector{Plots.Plot}()
+f_p=[1,4,8]
+for i in 1:3
+    id_fp=f_p[i]
+    p1=Plots.plot(Δ₁[id_fp,:],ylabel="Distance",title="FP $id_fp",labels="Δ₁")
+    Plots.plot!(Δ₂[id_fp,:],ylabel="Distance",labels="Δ₂")
+    push!(pp,p1)
+end
+p2=Plots.plot(EmpInput[TS][:,1],ylabel="Inputs",labels="Cue")
+Plots.plot!(EmpInput[TS][:,2],labels="Gamble Reward")
+Plots.plot!(EmpInput[TS][:,3],labels="Safe Reward")
+
+push!(pp,p2)
+sub=Plots.plot(pp[1],pp[2],pp[3],pp[4],layout=(4,1),size=(800,800),xlabel="Time Steps")
+
+
 # Long Simulations
 
 # Select initial condition
@@ -336,12 +384,43 @@ for i in 1:6
     )
     Plots.scatter!(matrix_FP[group2,ineu1],matrix_FP[group2,ineu2],tickfontsize=12,legend=false)
     Plots.scatter!(matrix_FP[group3,ineu1],matrix_FP[group3,ineu2],tickfontsize=12,legend=false)
-    Plots.plot!(Gene_dat[99000:100000,ineu1],Gene_dat[99000:100000,ineu2],tickfontsize=12,legend=false)
+    Plots.plot!(Gene_dat[900000:1000000,ineu1],Gene_dat[900000:1000000,ineu2],tickfontsize=12,legend=false)
     
     push!(pp, p1)
 end
 
 sub=Plots.plot(pp[1],pp[2],pp[3],pp[4],pp[5],pp[6],layout=(2,3),size=(1024,720))
+
+##########################################################################################################################################
+##########################################################################################################################################
+##########################################################################################################################################
+# Self-excited Attractors??
+
+Time_Steps=2000000
+num_Z=14
+clipped=true
+
+pp=Vector{Plots.Plot}()
+for i in 1:9
+    ineu1=3#rand(1:14)
+    ineu2=1#rand(1:14)
+    IC= FP_trials[string(TS)][i]
+    Gene_Emp=get_latent_time_series(Time_Steps,A,W₁,W₂,h₁,h₂,num_Z,z_0=IC,is_clipped=clipped)
+    Gene_dat=hcat(Gene_Emp...)'
+    p1=Plots.plot(
+        Plots.scatter(matrix_FP[group1,ineu1],matrix_FP[group1,ineu2],tickfontsize=10,legend=false,
+            xlabel="Neuron $ineu1",ylabel="Neuron $ineu2",title="FP $i"),
+    )
+    Plots.scatter!(matrix_FP[group2,ineu1],matrix_FP[group2,ineu2],tickfontsize=12,legend=false)
+    Plots.scatter!(matrix_FP[group3,ineu1],matrix_FP[group3,ineu2],tickfontsize=12,legend=false)
+    Plots.plot!(Gene_dat[1:1000,ineu1],Gene_dat[1:1000,ineu2],tickfontsize=12,legend=false,c=:black)
+    Plots.plot!(Gene_dat[1900000:2000000,ineu1],Gene_dat[1900000:2000000,ineu2],tickfontsize=12,legend=false,c=:red)
+    push!(pp, p1)
+end
+
+sub=Plots.plot(pp[1],pp[2],pp[3],pp[4],pp[5],pp[6],pp[7],pp[8],pp[9],layout=(3,3),size=(1024,720))
+
+
 
 
 ##########################################################################################################################################
@@ -552,7 +631,7 @@ Virt_GReward = virtual_trials(cue_dist,Gam_prob,Reward_prob,safe_prob,iti_dist,E
 # Gamble No Reward
 Gam_prob.=1.0
 Reward_prob.=0.0
-Virt_GNOReward = virtual_trials(cue_dist,Gam_prob,Reward_prob,Reward_safe,iti_dist,EmpData[TS][1,:])
+Virt_GNOReward = virtual_trials(cue_dist,Gam_prob,Reward_prob,safe_prob,iti_dist,EmpData[TS][1,:])
 # Safe Reward
 Gam_prob.=0
 Reward_safe=1.0
@@ -671,7 +750,125 @@ Plots.title!("FPs reduced dimensions")
 ##########################################################################################################################################
 ##########################################################################################################################################
 
+# Trials Transitions Limiting behaviour atractors
+# Select initial condition
+
+Time_Steps=1000000
+num_Z=14
+clipped=true
+Trial_id = [1,14,20,26,28,30,44,48,50]
+
+pp=Vector{Plots.Plot}()
+for i in 1:9
+    ineu1=8#rand(1:14)
+    ineu2=9#rand(1:14)
+    id = Trial_id[i]
+    IC= EmpData[Trial_id[i]][26,:]
+    W₁ₜ = data[2][Trial_id[i],:,:]
+    W₂ₜ = data[3][Trial_id[i],:,:]
+    Aₜ = data[1]
+    h₁ₜ = data[5]
+    h₂ₜ = data[4]
+    matrix_FP=hcat(FP_trials[string(id)]...)'
+    Gene_Emp=get_latent_time_series(Time_Steps,Aₜ,W₁ₜ,W₂ₜ,h₁ₜ,h₂ₜ,num_Z,z_0=IC,is_clipped=clipped)   
+    Gene_dat=hcat(Gene_Emp...)'
+    p1=Plots.plot(
+        Plots.plot(Gene_dat[990000:1000000,ineu1],Gene_dat[990000:1000000,ineu2],tickfontsize=12,legend=false,
+            c=:red,xlabel="Neuron $ineu1",ylabel="Neuron $ineu2",title="Trial $id"),
+    )
+    Plots.scatter!(matrix_FP[:,ineu1],matrix_FP[:,ineu2],tickfontsize=12,legend=false,c=:green)  
+    push!(pp, p1)
+end
+
+sub=Plots.plot(pp[1],pp[2],pp[3],pp[4],pp[5],pp[6],pp[7],pp[8],pp[9],layout=(3,3),size=(1024,720))
+
 # 
+
+
+Gam_prob=Dec_prob
+Reward_prob=gamb_prob
+Trial_id = [1,14,20,26,28,30,44,48,50]
+
+pp=Vector{Plots.Plot}()
+for i in 1:9
+    ineu1=8#rand(1:14)
+    ineu2=9#rand(1:14)
+    id = Trial_id[i]
+    W₁ = data[2][id,:,:]
+    W₂ = data[3][id,:,:]
+    A = data[1]
+    h₁ = data[5]
+    h₂ = data[4]
+    id = Trial_id[i]
+    # Gamble Reward
+    matrix_FP=hcat(FP_trials[string(id)]...)'
+    Gam_prob.=1
+    Reward_prob.=1
+    Virt_GReward = virtual_trials(cue_dist,Gam_prob,Reward_prob,safe_prob,iti_dist,EmpData[id][1,:])
+    # Gamble No Reward
+    Gam_prob.=1.0
+    Reward_prob.=0.0
+    Virt_GNOReward = virtual_trials(cue_dist,Gam_prob,Reward_prob,safe_prob,iti_dist,EmpData[id][1,:])
+    pca_model = fit(PCA, hcat(FP_trials[string(id)]...)'; maxoutdim=2)
+    p1=Plots.plot(
+        Plots.plot(Virt_GNOReward[:,ineu1],Virt_GNOReward[:,ineu2],tickfontsize=12,legend=false,
+        color=:grey,xlabel="Neuron $ineu1",ylabel="Neuron $ineu2",title="Trial $id"),
+    )
+    Plots.plot!(Virt_GReward[:,ineu1],Virt_GReward[:,ineu2],color=:green,
+    tickfontsize=12,legend=false)
+    Plots.scatter!(matrix_FP[:,ineu1],matrix_FP[:,ineu2],tickfontsize=12,legend=false,c=:red)
+    push!(pp, p1)
+end
+
+
+sub=Plots.plot(pp[1],pp[2],pp[3],pp[4],pp[5],pp[6],pp[7],pp[8],pp[9],layout=(3,3),size=(1024,720))
+
+
+Gam_prob=Dec_prob
+Reward_prob=gamb_prob
+Trial_id = [1,14,20,26,28,30,44,48,50]
+
+pp=Vector{Plots.Plot}()
+for i in 1:9
+    ineu1=8#rand(1:14)
+    ineu2=9#rand(1:14)
+    id = Trial_id[i]
+    W₁ = data[2][id,:,:]
+    W₂ = data[3][id,:,:]
+    A = data[1]
+    h₁ = data[5]
+    h₂ = data[4]
+    id = Trial_id[i]
+    # Gamble Reward
+    matrix_FP=hcat(FP_trials[string(id)]...)'
+    # Safe Reward
+    Gam_prob.=0
+    Reward_safe=1.0
+    Virt_SReward = virtual_trials(cue_dist,Gam_prob,Reward_prob,Reward_safe,iti_dist,EmpData[TS][1,:])
+    # Safe No Reward
+    Gam_prob.=0
+    Reward_safe=0.0
+    Virt_SNOReward = virtual_trials(cue_dist,Gam_prob,Reward_prob,Reward_safe,iti_dist,EmpData[TS][1,:])
+    pca_model = fit(PCA, hcat(FP_trials[string(id)]...)'; maxoutdim=2)
+    p1=Plots.plot(
+        Plots.plot(Virt_SNOReward[:,ineu1],Virt_SNOReward[:,ineu2],tickfontsize=12,legend=false,
+        color=:grey,xlabel="Neuron $ineu1",ylabel="Neuron $ineu2",title="Trial $id"),
+    )
+    Plots.plot!(Virt_SReward[:,ineu1],Virt_SReward[:,ineu2],color=:orange,
+    tickfontsize=12,legend=false)
+    Plots.scatter!(matrix_FP[:,ineu1],matrix_FP[:,ineu2],tickfontsize=12,legend=false,c=:red)
+    push!(pp, p1)
+end
+
+
+sub=Plots.plot(pp[1],pp[2],pp[3],pp[4],pp[5],pp[6],pp[7],pp[8],pp[9],layout=(3,3),size=(1024,720))
+
+
+
+##########################################################################################################################################
+##########################################################################################################################################
+##########################################################################################################################################
+
 
 
 Diag_dir=zeros(14,2,17)
