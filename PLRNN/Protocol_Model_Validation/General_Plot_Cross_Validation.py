@@ -11,26 +11,26 @@ from mpl_toolkits import mplot3d
 plt.rcParams['font.size'] = 20
 
 #%% Set Paths: Data & Model
-data_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/results/OFC_red/Evaluation_Sheets'
+data_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/results/Tuning_OFC_CE17_221008/Evaluation_Sheets'
 
 # Load Train Trials Data
-file_name = 'TrainEvaluation_CE17_red.csv'
+file_name = 'TrainEvaluation_CE17_221008.csv'
 load_file=os.path.join(data_path,file_name).replace('\\','/')
 Traindf = pd.read_csv(load_file)
 
 # Load Test Trials Data
-file_name = 'TestEvaluation_CE17_red.csv'
+file_name = 'TestEvaluation_CE17_221008.csv'
 load_file=os.path.join(data_path,file_name).replace('\\','/')
 Testdf = pd.read_csv(load_file)
 
 # Load Limiting Behaviour Data
-file_name = 'LimitingBehaviour_CE17_red.csv'
+file_name = 'LimitingBehaviour_CE17_221008.csv'
 load_file=os.path.join(data_path,file_name).replace('\\','/')
 Limitdf = pd.read_csv(load_file)
 
 
 #%% Effect of Lambda2 for specific Hidden Units
-hidden_num=60
+hidden_num=512
 Test_SL = Testdf[(Testdf["Hiddn_Units"]==hidden_num)]
 Train_SL = Traindf[(Traindf["Hiddn_Units"]==hidden_num)]
 Limit_SL= Limitdf[(Limitdf["Hiddn_Units"]==hidden_num)]
@@ -107,7 +107,7 @@ plt.legend(handles=[blue_patch, red_patch],bbox_to_anchor=(1.5, 1.0))
 
 
 #%% Effect of Hidden Units for specific Lamda2
-Lambda_num=64
+Lambda_num=256
 Test_SL = Testdf[(Testdf["Lambda2"]==Lambda_num)]
 Train_SL = Traindf[(Traindf["Lambda2"]==Lambda_num)]
 Limit_SL= Limitdf[(Limitdf["Lambda2"]==Lambda_num)]

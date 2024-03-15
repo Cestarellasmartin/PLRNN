@@ -23,15 +23,15 @@ from function_modules import model_anafunctions as func
 plt.rcParams['font.size'] = 20
 #%% Load Recordings
 
-data_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/neuralactivity/OFC/CE17_reduction/datasets/' 
+data_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/neuralactivity/OFC/CE17/L6/Test0/datasets/' 
 # Select Path for Models (Folder containing the specific models to test)
-model_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/results/OFC_red'
+model_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/results/Tuning_OFC_CE17_221008'
 
 #%% Load Training & Test Data
 Act,Inp = func.load_data(data_path,'Training')
 
 #%% Loading models and simulations
-model_name = 'CE14_L6_01_HU_40_l1_0.001_l2_08_l3_00_SL_400_encdim_14/001'
+model_name = 'CE1701_HU_256_l1_0.001_l2_64_l3_00_SL_400_encdim_65/001'
 mpath=os.path.join(model_path,model_name).replace('\\','/')
 
 
@@ -531,8 +531,8 @@ def HU_structure(X_pca,X,pos,limit_C10,limit_C11,Transition_Trial0,Transition_Tr
     plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
     plt.show()
 
-TT0=24
-TT1=26
+TT0=23
+TT1=28
 lC10=-5
 lC11=5
 HU_structure(W1_pca,Whz,sort_pos,lC10,lC11,TT0,TT1,"W1")
