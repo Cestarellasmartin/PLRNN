@@ -44,10 +44,12 @@ for tr in 1:num_trials
                     push!(FP,DO[iob][1])
                     push!(EV,EO[iob])
                     push!(kC,ik)
-                    rev=real(EO[iob])
-                    if (sum(rev.>0)/size(rev)[1])==1
+                    stability=abs.(EO[iob])
+                    unstable = sum(stability.>=1)
+                    stable = sum(stability .< 1)
+                    if unstable==length(stability)
                         push!(Stab,1)
-                    elseif (sum(rev.>0)/size(rev)[1])==0
+                    elseif stable==length(stability)
                         push!(Stab,-1)
                     else
                         push!(Stab,0)
@@ -61,10 +63,12 @@ for tr in 1:num_trials
                         push!(FP,DO[iob])
                         push!(EV,EO[iob])
                         push!(kC,ik)
-                        rev=real(EO[iob])
-                        if (sum(rev.>0)/size(rev)[1])==1
+                        stability=abs.(EO[iob])
+                        unstable = sum(stability.>=1)
+                        stable = sum(stability .< 1)
+                        if unstable==length(stability)
                             push!(Stab,1)
-                        elseif (sum(rev.>0)/size(rev)[1])==0
+                        elseif stable==length(stability)
                             push!(Stab,-1)
                         else
                             push!(Stab,0)
@@ -73,10 +77,12 @@ for tr in 1:num_trials
                         push!(FP,DO[iob][1])
                         push!(EV,EO[iob])
                         push!(kC,1)
-                        rev=real(EO[iob])
-                        if (sum(rev.>0)/size(rev)[1])==1
+                        stability=abs.(EO[iob])
+                        unstable = sum(stability.>=1)
+                        stable = sum(stability .< 1)
+                        if unstable==length(stability)
                             push!(Stab,1)
-                        elseif (sum(rev.>0)/size(rev)[1])==0
+                        elseif stable==length(stability)
                             push!(Stab,-1)
                         else
                             push!(Stab,0)
@@ -131,9 +137,10 @@ legend=:outertopright)
 groupedbar([ST_num UNST_num BIST_num],
 bar_position= :stack,
 bar_width=0.5,
+color = [:red :black :limegreen],
 xlabel="Trials",ylabel="# of Different Objects",
 title="FP and Cycles detected in the session",
-label=["Stable" "Unstable" "Multitable"],
+label=["Stable" "Unstable" "Saddle"],
 yticks=(1:limit_do),
 legend=:outertopright)
 
@@ -142,7 +149,7 @@ legend=:outertopright)
 ##########################################################################################################################################
 
 # Select Trial
-TS=44
+TS=20
 
 # Loading Model
 data=Pickle.npyload("D:/_work_cestarellas/Analysis/PLRNN/SCYFI/data/Model_Parameters/Model_Parameters_CE17_red_001.pkl")
@@ -308,7 +315,7 @@ for i in 1:6
     ineu2=n2[i]#rand(1:14)
     p1=Plots.plot(
         Plots.scatter(matrix_FP[group1,ineu1],matrix_FP[group1,ineu2],tickfontsize=10,legend=false,
-            xlabel="Neuron $ineu1",ylabel="Neuron $ineu2",title="Trial 1"),
+            xlabel="Neuron $ineu1",ylabel="Neuron $ineu2",title="Trial 20"),
     )
     Plots.scatter!(matrix_FP[group2,ineu1],matrix_FP[group2,ineu2],tickfontsize=12,legend=false)
     Plots.scatter!(matrix_FP[group3,ineu1],matrix_FP[group3,ineu2],tickfontsize=12,legend=false)

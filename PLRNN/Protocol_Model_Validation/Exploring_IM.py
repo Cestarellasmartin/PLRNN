@@ -23,15 +23,15 @@ from function_modules import model_anafunctions as func
 plt.rcParams['font.size'] = 20
 #%% Load Recordings
 
-data_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/neuralactivity/OFC/CE17/L6/Test0/datasets/' 
+data_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/neuralactivity/OFC/CE17_reduction/datasets/' 
 # Select Path for Models (Folder containing the specific models to test)
-model_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/results/Tuning_OFC_CE17_221008'
+model_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/results/OFC_red'
 
 #%% Load Training & Test Data
 Act,Inp = func.load_data(data_path,'Training')
 
 #%% Loading models and simulations
-model_name = 'CE1701_HU_256_l1_0.001_l2_64_l3_00_SL_400_encdim_65/001'
+model_name = 'CE14_L6_01_HU_40_l1_0.001_l2_08_l3_00_SL_400_encdim_14/001'
 mpath=os.path.join(model_path,model_name).replace('\\','/')
 
 
@@ -172,6 +172,12 @@ plt.xlabel('Trials')
 plt.ylabel("Animal's choice")
 plt.title('Session for modelling')
 
+plt.figure()
+plt.plot(DecisionNormalized)
+plt.xlim([first_trial,last_trial])
+plt.xticks(Model_trial[1:-1:10],label_xticks[1:-1:10])
+plt.xlabel("Trials")
+plt.ylabel("Gamble choice prob")
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% BEHAVIOUR  CE17 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 path='D:/_work_cestarellas/Analysis/PLRNN/Session_Selected/OFC/CE17_L6'
 filename = "session.csv"
@@ -248,7 +254,14 @@ plt.xlabel('Trials')
 plt.ylabel("Animal's choice")
 plt.title('Session for modelling')
 
-
+plt.figure()
+plt.plot(DecisionNormalized)
+plt.axvline(Model_trial[23],c="black",linestyle="--")
+plt.axvline(Model_trial[28],c="black",linestyle="--")
+plt.xlim([first_trial,last_trial])
+plt.xticks(Model_trial[1:-1:10],label_xticks[1:-1:10])
+plt.xlabel("Trials")
+plt.ylabel("Gamble choice prob")
 #%% W parameters
 
 At, W1t, W2t, h1t, h2t, Ct = m.get_latent_parameters()

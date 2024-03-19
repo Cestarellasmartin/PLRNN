@@ -19,15 +19,14 @@ plt.rcParams['font.size'] = 20
 
 #%% Load Recordings
 
-data_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/neuralactivity/OFC/JG15_190724/datasets/' 
+data_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/neuralactivity/OFC/CE17_reduction/datasets/' 
 # Select Path for Models (Folder containing the specific models to test)
-model_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/results/Tuning_OFC_JG15_190724'
-
+model_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/results/OFC_red'
 #%% Load Training & Test Data
 Act,Inp = func.load_data(data_path,'Training')
 
 #%% Loading models and simulations
-model_name = 'JG15_01_HU_256_l1_0.001_l2_08_l3_00_SL_400_encdim_74/001'
+model_name = 'CE14_L6_01_HU_40_l1_0.001_l2_08_l3_00_SL_400_encdim_14/001'
 mpath=os.path.join(model_path,model_name).replace('\\','/')
 
 
