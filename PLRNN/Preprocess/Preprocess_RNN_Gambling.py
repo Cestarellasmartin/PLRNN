@@ -65,7 +65,7 @@ def Metadata_Extraction(Info):
     return Metadata
 
 def SessionConvolution(SM,NumNeu,NumTrials,StartTrial,EndTrial,InstBs,KernelSelect):
-    MaxTime=(np.nanmax(SM[-1,:])+0.05)*pq.s
+    MaxTime=(np.nanmax(SM[-1,:])+0.5)*pq.s
     NeuKernel = np.zeros(NumNeu)
     InstRate = []
     NeuralActive = []
@@ -143,8 +143,8 @@ def Data_format(X,S,name,save_directory):
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% LOADING DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-path='D:/_work_cestarellas/Analysis/PLRNN/Session_Selected/OFC/JG15_190724_clustered'   # Pathway of the data (behaviour & Spike activity)
-save_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/neuralactivity/OFC/JG15_190724'
+path='D:/_work_cestarellas/Analysis/PLRNN/Session_Selected/OFC/JG15_190725_clustered'   # Pathway of the data (behaviour & Spike activity)
+save_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/neuralactivity/OFC/JG15_25_DP'
 
 os.chdir(path)
 list_files = os.listdir(path)
@@ -247,7 +247,8 @@ else:
     first_trial = 0
     last_trial = NoRespondingTrials[0]-1
     
-
+first_trial = 0
+last_trial = NoRespondingTrials[0]-1
 
 # FIGURE: Plot behaviour performance
 plt.figure(figsize=(25,5))
@@ -288,8 +289,8 @@ SamplePt = (SampleTime*SampleRt).magnitude                                      
 
 # Defining Behavioural Events
 # Trial Info: version 07/2023: DataFrame with error in InterTrialIntervals
-StartTrial = np.array(Beh_Matrix[:,15]/SampleRtPoints)                                                  # times of trial initiation
-CueScreen = np.array(Beh_Matrix[:,16]/SampleRtPoints)                                                  # times of cue presented
+StartTrial = np.array(Beh_Matrix[:,14]/SampleRtPoints)                                                  # times of trial initiation
+CueScreen = np.array(Beh_Matrix[:,15]/SampleRtPoints)                                                  # times of cue presented
 RewardTime = np.array(BehData[:,17]/SampleRtPoints)                                                      # times of reward
 EndTrial = np.array([StartTrial[i] for i in range(1,StartTrial.shape[0])])                       
 EndTrial = np.append(EndTrial,np.array(Beh_Matrix[-1,18]/SampleRtPoints)) 
@@ -325,7 +326,7 @@ print("Number of Trials: ",NumTrials)
 # Bin_size for the instantaneous rate
 InstBs = 0.02*pq.s                                                           # sample period
 InstRt = (1/InstBs).rescale('Hz')                                            # sample rate
-KernelSelect = np.linspace(10*InstBs.magnitude,10,num = 8)                   # possible kernel bandwidth
+KernelSelect = np.linspace(10*InstBs.magnitude,4,num = 8)                   # possible kernel bandwidth
 
 SpikeMatrix=STMtx[:,BestNeurons]
 # Computing convolution with optimal kernel from recording data that belongs to the session
@@ -343,6 +344,21 @@ axs[1].set_ylabel("Neurons")
 axs[1].set_xlabel("Firing Rate (Hz)")
 axs[1].set_title("Average Session")
 plt.savefig('plots/Preprocess_Distribution.png')
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%% FILTER INFO PREPROCESS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# Selecting neurons with the optimal kernel smaller than 1 second
+Neu_sel=np.where(NeuKernelS<1)[0]
+
+NeuralConvolutionS = NeuralConvolutionS[:,Neu_sel]
+
+#%%
+temp_vec = np.linspace(0,1000,1000)*0.02
+plt.figure()
+plt.plot(temp_vec,NeuralConvolutionS[:1000,:])
+plt.xlabel("Time (s)")
+print("Neurons: ",NeuralConvolutionS.shape[1])
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% DATA PREPROCESS FOR PLRNN MODEL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 LastTrial = Beh_Matrix.shape[0]
 # Number of External Inputs
@@ -435,7 +451,7 @@ for i in InitialTrial:
 plt.xlim([0,LastTrial])
 plt.ylim([-0.2,1.2])
 plt.yticks(ticks=[1.0,0.5,0.0])
-plt.xticks(InitialTrial[0:-1:2],label_xticks[0:-1:2])
+plt.xticks(InitialTrial[0:-1:10],label_xticks[0:-1:10])
 plt.xlabel('Concatenated Trials')
 plt.ylabel("Animal's choice")
 plt.savefig('plots/Session_ConcatenatedTrials.png')

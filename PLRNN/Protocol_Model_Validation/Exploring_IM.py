@@ -23,15 +23,15 @@ from function_modules import model_anafunctions as func
 plt.rcParams['font.size'] = 20
 #%% Load Recordings
 
-data_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/neuralactivity/OFC/CE17_reduction/datasets/' 
+data_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/neuralactivity/OFC/CE17/L6/Test0/datasets/' 
 # Select Path for Models (Folder containing the specific models to test)
-model_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/results/OFC_red'
+model_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/results/Tuning_OFC_CE17_221008'
 
 #%% Load Training & Test Data
 Act,Inp = func.load_data(data_path,'Training')
 
 #%% Loading models and simulations
-model_name = 'CE14_L6_01_HU_40_l1_0.001_l2_08_l3_00_SL_400_encdim_14/001'
+model_name = 'CE1701_HU_256_l1_0.001_l2_08_l3_00_SL_400_encdim_65/001'
 mpath=os.path.join(model_path,model_name).replace('\\','/')
 
 
@@ -554,5 +554,64 @@ lC10=-5
 lC11=5
 HU_structure(W2_pca,Whz2,sort_pos2,lC10,lC11,TT0,TT1,"W2")
 
-#%% Neuron organization
+#%% Limiting behaviour stability
+
+# Input Limit Behaviour
+Warm_time=500000
+Input_channels= NeuronPattern["Training_Input"][0].shape[1]
+Length_data=1000000
+# Generation of free trajectories for limiting behaviour - SNAPSHOT
+ModelLB=[]
+for w_index in range(len(NeuronPattern["Training_Neuron"])):
+    Inputs=tc.zeros(Length_data,Input_channels,dtype=tc.float32)
+    data_trial=tc.from_numpy(NeuronPattern["Training_Neuron"][w_index]).float()                                             # tensor of neuronal data for initial trial data
+    X, _ = m.generate_free_trajectory(data_trial,Inputs,Length_data,w_index)
+    ModelLB.append(X)
+
+#%% selection of neurons for visual representation
+in1 = 7; in2=8
+id_trial=[0,13,19,25,27,29,43,47,49]
+fig,axs = plt.subplots(3,3,figsize=(20,25))
+axs[0,0].plot(ModelLB[id_trial[0]][-5000:,in1],ModelLB[id_trial[0]][-5000:,in2])
+axs[0,0].set_xlabel("Neuron "+str(in1+1))
+axs[0,0].set_ylabel("Neuron "+str(in2+1))
+axs[0,0].set_title("Trial "+str(id_trial[0]))
+axs[0,1].plot(ModelLB[id_trial[1]][-5000:,in1],ModelLB[id_trial[1]][-5000:,in2])
+axs[0,1].set_xlabel("Neuron "+str(in1+1))
+axs[0,1].set_ylabel("Neuron "+str(in2+1))
+axs[0,1].set_title("Trial "+str(id_trial[1]))
+axs[0,2].plot(ModelLB[id_trial[2]][-5000:,in1],ModelLB[id_trial[2]][-5000:,in2])
+axs[0,2].set_xlabel("Neuron "+str(in1+1))
+axs[0,2].set_ylabel("Neuron "+str(in2+1))
+axs[0,2].set_title("Trial "+str(id_trial[2]))
+
+axs[1,0].plot(ModelLB[id_trial[3]][-5000:,in1],ModelLB[id_trial[3]][-5000:,in2])
+axs[1,0].set_xlabel("Neuron "+str(in1+1))
+axs[1,0].set_ylabel("Neuron "+str(in2+1))
+axs[1,0].set_title("Trial "+str(id_trial[3]))
+axs[1,1].plot(ModelLB[id_trial[4]][-5000:,in1],ModelLB[id_trial[4]][-5000:,in2])
+axs[1,1].set_xlabel("Neuron "+str(in1+1))
+axs[1,1].set_ylabel("Neuron "+str(in2+1))
+axs[1,1].set_title("Trial "+str(id_trial[4]))
+axs[1,2].plot(ModelLB[id_trial[5]][-5000:,in1],ModelLB[id_trial[5]][-5000:,in2])
+axs[1,2].set_xlabel("Neuron "+str(in1+1))
+axs[1,2].set_ylabel("Neuron "+str(in2+1))
+axs[1,2].set_title("Trial "+str(id_trial[5]))
+
+axs[2,0].plot(ModelLB[id_trial[6]][-5000:,in1],ModelLB[id_trial[6]][-5000:,in2])
+axs[2,0].set_xlabel("Neuron "+str(in1+1))
+axs[2,0].set_ylabel("Neuron "+str(in2+1))
+axs[2,0].set_title("Trial "+str(id_trial[6]))
+axs[2,1].plot(ModelLB[id_trial[7]][-5000:,in1],ModelLB[id_trial[7]][-5000:,in2])
+axs[2,1].set_xlabel("Neuron "+str(in1+1))
+axs[2,1].set_ylabel("Neuron "+str(in2+1))
+axs[2,1].set_title("Trial "+str(id_trial[7]))
+axs[2,2].plot(ModelLB[id_trial[8]][-5000:,in1],ModelLB[id_trial[8]][-5000:,in2])
+axs[2,2].set_xlabel("Neuron "+str(in1+1))
+axs[2,2].set_ylabel("Neuron "+str(in2+1))
+axs[2,2].set_title("Trial "+str(id_trial[8]))
+plt.show()
+
+# %%
+
 
