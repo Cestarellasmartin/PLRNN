@@ -143,8 +143,8 @@ def Data_format(X,S,name,save_directory):
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% LOADING DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-path='D:/_work_cestarellas/Analysis/PLRNN/Session_Selected/OFC/JG15_190725_clustered'   # Pathway of the data (behaviour & Spike activity)
-save_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/neuralactivity/OFC/JG15_25_DP'
+path='D:/_work_cestarellas/Analysis/PLRNN/Session_Selected/OFC/DM01_5_220522'   # Pathway of the data (behaviour & Spike activity)
+save_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/neuralactivity/OFC/DM01_5_DP'
 
 os.chdir(path)
 list_files = os.listdir(path)
@@ -248,7 +248,7 @@ else:
     last_trial = NoRespondingTrials[0]-1
     
 first_trial = 0
-last_trial = NoRespondingTrials[0]-1
+last_trial = NoRespondingTrials[3]-1
 
 # FIGURE: Plot behaviour performance
 plt.figure(figsize=(25,5))
@@ -353,9 +353,9 @@ Neu_sel=np.where(NeuKernelS<1)[0]
 NeuralConvolutionS = NeuralConvolutionS[:,Neu_sel]
 
 #%%
-temp_vec = np.linspace(0,1000,1000)*0.02
+temp_vec = np.linspace(0,10000,10000)*0.02
 plt.figure()
-plt.plot(temp_vec,NeuralConvolutionS[:1000,:])
+plt.plot(temp_vec,NeuralConvolutionS[:10000,:])
 plt.xlabel("Time (s)")
 print("Neurons: ",NeuralConvolutionS.shape[1])
 
@@ -385,14 +385,17 @@ for i in TrialList:
     EndPosition = int(EndTrial[i]/InstBs.magnitude)         # end trial index
     NumberBinTrials.append(EndPosition-StartPosition)
     DataTrials.append(NeuralConvolutionS[StartPosition:EndPosition,:])
-    # initialization input matrix
-    InputMatrix = np.zeros((NeuralConvolutionS[StartPosition:EndPosition,:].shape[0],NumberExternalInputs))
-    # trial decision
-    InputMatrix[(ActionPosition-StartPosition):(RewardPosition-StartPosition),ActionChannel]= ActionValue # trial Action
-    # trial big reward
-    InputMatrix[(RewardPosition-StartPosition):((RewardPosition-StartPosition)+25),BigRewardChannel]= BigRewardValue[i] 
-    # trial small reward
-    InputMatrix[(RewardPosition-StartPosition):((RewardPosition-StartPosition)+25),SmallRewardChannel]= SmallRewardValue[i]
+    if np.isin(i,NoRespondingTrials):
+        InputMatrix = np.zeros((NeuralConvolutionS[StartPosition:EndPosition,:].shape[0],NumberExternalInputs))
+    else:
+        # initialization input matrix
+        InputMatrix = np.zeros((NeuralConvolutionS[StartPosition:EndPosition,:].shape[0],NumberExternalInputs))
+        # trial decision
+        InputMatrix[(ActionPosition-StartPosition):(RewardPosition-StartPosition),ActionChannel]= ActionValue # trial Action
+        # trial big reward
+        InputMatrix[(RewardPosition-StartPosition):((RewardPosition-StartPosition)+25),BigRewardChannel]= BigRewardValue[i] 
+        # trial small reward
+        InputMatrix[(RewardPosition-StartPosition):((RewardPosition-StartPosition)+25),SmallRewardChannel]= SmallRewardValue[i]  
     InputTrials.append(InputMatrix)
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% CONCATENATING TRIALS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
