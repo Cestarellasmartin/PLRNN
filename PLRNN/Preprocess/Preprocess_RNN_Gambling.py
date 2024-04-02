@@ -143,8 +143,8 @@ def Data_format(X,S,name,save_directory):
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% LOADING DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-path='D:/_work_cestarellas/Analysis/PLRNN/Session_Selected/OFC/DM01_5_220522'   # Pathway of the data (behaviour & Spike activity)
-save_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/neuralactivity/OFC/DM01_5_DP'
+path='D:/_work_cestarellas/Analysis/PLRNN/Session_Selected/OFC/DM01_7_220524'   # Pathway of the data (behaviour & Spike activity)
+save_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/neuralactivity/OFC/DM01_7_DP'
 
 os.chdir(path)
 list_files = os.listdir(path)
