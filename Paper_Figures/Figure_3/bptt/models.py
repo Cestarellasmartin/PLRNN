@@ -228,7 +228,7 @@ class Model(nn.Module):
         if epoch is None:
             epoch = self.args['n_epochs']
         path = os.path.join(model_path, '{}_{}.pt'.format(model_name, str(epoch)))
-        state_dict = tc.load(path)
+        state_dict = tc.load(path,map_location='cuda:0')
         return state_dict
 
     @tc.no_grad()

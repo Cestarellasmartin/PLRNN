@@ -115,7 +115,7 @@ def Hyper_mod(mpath,data_path):
     file.close()
     hyper['data_path']=os.path.join(data_path,'Training_data.npy').replace('\\','/')
     hyper['inputs_path']=os.path.join(data_path,'Training_inputs.npy').replace('\\','/')
-    hyper['device_id'] = '0'
+    hyper['device_id'] = 1
     full_name = open(os.path.join(mpath,'hypers.pkl').replace("\\","/"),"wb")                      # Name for training data
     pickle.dump(hyper,full_name)            # Save train data
     #close save instance 
