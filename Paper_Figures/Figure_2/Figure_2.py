@@ -109,18 +109,31 @@ def Avg_W_simulations(t_prev,t_post,xneu,Data_X,Data_Y,flag_state):
 
     return M_Reward,N_Reward,M_NOReward,N_NOReward
 
+def Hyper_mod(mpath,data_path):
+    file=open(os.path.join(mpath,'hypers.pkl').replace("\\","/"),'rb')
+    hyper=pickle.load(file)
+    file.close()
+    hyper['data_path']=os.path.join(data_path,'Training_data.npy').replace('\\','/')
+    hyper['inputs_path']=os.path.join(data_path,'Training_inputs.npy').replace('\\','/')
+    hyper['device_id'] = '0'
+    full_name = open(os.path.join(mpath,'hypers.pkl').replace("\\","/"),"wb")                      # Name for training data
+    pickle.dump(hyper,full_name)            # Save train data
+    #close save instance 
+    full_name.close()
+
 #%% Load Data and Behaviour
 ################################ Directories and files to modify ################################ 
 # Select Path for multi-unit data
-data_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/neuralactivity/OFC/CE17_reduction/datasets/' 
-data_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/neuralactivity/OFC/CE17/L6/Test0/datasets/' 
+data_path = 'D:\\_work_cestarellas\\Analysis\\Pack_Daniel_project\\Preprocess_model\\bptt_DM01_5\\neuralactivity\\DM01_5_DP\\datasets\\' 
+#data_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/neuralactivity/OFC/CE17/L6/Test0/datasets/' 
 # Select Path for Models (Folder containing the specific models to test)
-model_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/results/OFC_red'
-model_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/results/Tuning_OFC_CE17_221008'
+model_path = 'D:\\_work_cestarellas\Analysis\\Pack_Daniel_project\\Preprocess_model\\bptt_DM01_5\\results\\'
+#model_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/results/Tuning_OFC_CE17_221008'
 
 # Loading models and simulations
-model_name = 'CE14_L6_01_HU_40_l1_0.001_l2_08_l3_00_SL_400_encdim_14/001'
-model_name = 'CE1701_HU_256_l1_0.001_l2_08_l3_00_SL_400_encdim_65/001'
+
+model_name = 'DataTrainingH768_lm1_1e-05_lm2_128_lm3_00_seql_400/001'
+#model_name = 'CE1701_HU_256_l1_0.001_l2_08_l3_00_SL_400_encdim_65/001'
 
 ################################################################################################# 
 
@@ -132,9 +145,9 @@ train_n,train_i = func.load_data(data_path,'Training')
 test_n,test_i = func.load_data(data_path,'Test')
 NeuronPattern={"Training_Neuron":train_n,"Training_Input":train_i,
                "Testing_Neuron":test_n,"Testing_Input":test_i}
-
+Hyper_mod(mpath,data_path)
 # Loading Model
-num_epochs = 200000
+num_epochs = 150000
 m = Model()
 m.init_from_model_path(mpath, epoch=num_epochs)
 m.eval()
@@ -322,65 +335,69 @@ axs[1,1].plot(time_vec,smln_mean,color='red', lw = 2,label='Simulated Acvity')
 axs[1,1].fill_between(time_vec, smen_max, smen_min, color='red', alpha=0.3)
 axs[1,1].set_xlabel("Time (s)")
 axs[1,1].set_ylabel("Mean firing rate (std)")
-
+plt.show()
 # %% Panel C
+total_neu =  train_n[0].shape[1]
 Corr_sectors = {}
-# Correlation of Individual trials and average trajectory
-# Gamble Reward Real
-corr_list=[]
-for i in range(SGN_rew.shape[0]):
-    corr_list.append(np.corrcoef(gnl_mean,SGN_rew[i,:])[0,1])
-Corr_sectors["GR_real"]=corr_list
-# Gamble Reward Generated
-corr_list=[]
-for i in range(SGM_rew.shape[0]):
-    corr_list.append(np.corrcoef(gml_mean,SGN_rew[i,:])[0,1])
-Corr_sectors["GR_gen"]=corr_list
-# Gamble No Reward Real
-corr_list=[]
-for i in range(SGN_norew.shape[0]):
-    corr_list.append(np.corrcoef(gnln_mean,SGN_norew[i,:])[0,1])
-Corr_sectors["GNR_real"]=corr_list
-# Gamble No Reward Generated
-corr_list=[]
-for i in range(SGM_norew.shape[0]):
-    corr_list.append(np.corrcoef(gmln_mean,SGN_norew[i,:])[0,1])
-Corr_sectors["GNR_gen"]=corr_list
+mean_gr_n = [] ; mean_gr_m = []
+mean_gnr_n = [] ; mean_gnr_m = []
+mean_sr_n =[] ; mean_sr_m = []
+mean_snr_n = [] ; mean_snr_m = []
 
-# Safe Reward Real
-corr_list=[]
-for i in range(SSN_rew.shape[0]):
-    corr_list.append(np.corrcoef(snl_mean,SSN_rew[i,:])[0,1])
-Corr_sectors["SR_real"]=corr_list
-# Gamble Reward Generated
-corr_list=[]
-for i in range(SSM_rew.shape[0]):
-    corr_list.append(np.corrcoef(sml_mean,SSN_rew[i,:])[0,1])
-Corr_sectors["SR_gen"]=corr_list
-# Gamble No Reward Real
-corr_list=[]
-for i in range(SSN_norew.shape[0]):
-    corr_list.append(np.corrcoef(snln_mean,SSN_norew[i,:])[0,1])
-Corr_sectors["SNR_real"]=corr_list
-# Gamble No Reward Generated
-corr_list=[]
-for i in range(SSM_norew.shape[0]):
-    corr_list.append(np.corrcoef(smln_mean,SSN_norew[i,:])[0,1])
-Corr_sectors["SNR_gen"]=corr_list
+for itneu in range(total_neu):
+    SGM_rew,SGN_rew,SGM_norew,SGN_norew = Avg_W_simulations(t_prev_s1,t_post_s1,itneu,train_n,train_i,1)
+    SSM_rew,SSN_rew,SSM_norew,SSN_norew = Avg_W_simulations(t_prev_s2,t_post_s2,itneu,train_n,train_i,0)
+    # Gamble Reward Real
+    corr_list=[]
+    for i in range(SGN_rew.shape[0]):
+        corr_list.append(np.corrcoef(SGN_rew.mean(0),SGN_rew[i,:])[0,1])
+    mean_gr_n.append(np.array(corr_list).mean())
+    # Gamble Reward Generated
+    corr_list=[]
+    for i in range(SGM_rew.shape[0]):
+        corr_list.append(np.corrcoef(SGM_rew.mean(0),SGN_rew[i,:])[0,1])
+    mean_gr_m.append(np.array(corr_list).mean()) 
+    # Gamble NO Reward Real
+    corr_list=[]
+    for i in range(SGN_norew.shape[0]):
+        corr_list.append(np.corrcoef(SGN_norew.mean(0),SGN_norew[i,:])[0,1])
+    mean_gnr_n.append(np.array(corr_list).mean())
+    # Gamble NO Reward Generated
+    corr_list=[]
+    for i in range(SGM_norew.shape[0]):
+        corr_list.append(np.corrcoef(SGM_norew.mean(0),SGN_norew[i,:])[0,1])
+    mean_gnr_m.append(np.array(corr_list).mean())
+    
+    # Safe Reward Real
+    corr_list=[]
+    for i in range(SSN_rew.shape[0]):
+        corr_list.append(np.corrcoef(SSN_rew.mean(0),SSN_rew[i,:])[0,1])
+    mean_sr_n.append(np.array(corr_list).mean())
+    # Safe Reward Generated
+    corr_list=[]
+    for i in range(SSM_rew.shape[0]):
+        corr_list.append(np.corrcoef(SSM_rew.mean(0),SSN_rew[i,:])[0,1])
+    mean_sr_m.append(np.array(corr_list).mean()) 
+    # Safe NO Reward Real
+    corr_list=[]
+    for i in range(SSN_norew.shape[0]):
+        corr_list.append(np.corrcoef(SSN_norew.mean(0),SSN_norew[i,:])[0,1])
+    mean_snr_n.append(np.array(corr_list).mean())
+    # Gamble NO Reward Generated
+    corr_list=[]
+    for i in range(SSM_norew.shape[0]):
+        corr_list.append(np.corrcoef(SSM_norew.mean(0),SSN_norew[i,:])[0,1])
+    mean_snr_m.append(np.array(corr_list).mean())
 
+Corr_sectors["GR_real"]=mean_gr_n ; Corr_sectors["GR_gen"]=mean_gr_m
+Corr_sectors["GNR_real"]=mean_gnr_n ; Corr_sectors["GNR_gen"]=mean_gnr_m
+Corr_sectors["SR_real"]=mean_sr_n ; Corr_sectors["SR_gen"]=mean_sr_m
+Corr_sectors["SNR_real"]=mean_snr_n ; Corr_sectors["SNR_gen"]=mean_snr_m
 
-
-# Find the maximum length
-max_length = max(len(values) for values in Corr_sectors.values())
-
-# Pad shorter lists with NaN
-padded_data = {key: values + [np.nan] * (max_length - len(values)) for key, values in Corr_sectors.items()}
-
-
-Corr_df = pd.DataFrame(padded_data)
+Corr_df = pd.DataFrame(Corr_sectors)
 plt.rcParams['font.size'] = 14
 plt.figure(figsize=(6,5))
 Corr_df.boxplot(rot=45,grid=False)
 plt.ylabel("mean corr.")
-
+plt.show()
 # %%

@@ -1,6 +1,7 @@
 # %% Import Libraries
 #This is a test
 import os
+import pickle
 import scipy.io
 import numpy as np
 import pandas as pd
@@ -43,16 +44,39 @@ for w_index in tqdm(range(len(train_n))):
     X, _ = m.generate_free_trajectory(data_trial,input_trial,length_sim,w_index)
     ModelS.append(X[:,:])
 
-#%%
-Nseries,_=func.concatenate_list(train_n,0)
-Iseries,_=func.concatenate_list(train_i,0)
-Mseries,_=func.concatenate_list(ModelS,0)
+# Concatenating signals
+Nseries,_=func.concatenate_list(train_n,0)          # recorded activity
+Iseries,_=func.concatenate_list(train_i,0)          # external input
+Mseries,_=func.concatenate_list(ModelS,0)           # simulated activity
 
-Cue_ts=np.where(Iseries[:,0]==1)[0]
+#%% Classifier 1: Choice (Gamble or Safe)
+# Identification of training trials in full behaviour
+Meta_file_path = "D:\\_work_cestarellas\\Analysis\\PLRNN\\noautoencoder\\neuralactivity\\OFC\\CE17_reduction\\datasets\\Metadata.pkl"
+# Open the file in binary mode
+with open(Meta_file_path, "rb") as f:
+    # Load the pickled data
+    Meta_info = pickle.load(f)
+
+itrain = 0
+itest = 0
+Trials_inmodel = []
+for i in range(len(Meta_info["TestTrials"])+len(Meta_info["TrainingTrials"])):
+    if i in Meta_info["TrainingTrials"]:
+        Trials_inmodel.append(np.sum(np.diff(train_i[itrain][:,0])==1))
+        itrain += 1
+    elif i in Meta_info["TestTrials"]:
+        Trials_inmodel.append(np.sum(np.diff(test_i[itest][:,0])==1))
+        itest +=1
+
+#%%
+
+# Temporal sectors
+Cue_ts = np.where(Iseries[:,0]==1)[0]
 Limit_cue = np.where(np.diff(Cue_ts)>1)[0]
-End_pos=Cue_ts[Limit_cue]+1
-Start_pos=End_pos[:-1]+25
-Start_pos=np.append(np.array(0),Start_pos)
+End_pos = Cue_ts[Limit_cue]+1
+Start_pos = End_pos[:-1]+25
+Start_pos = np.append(np.array(0),Start_pos)
+
 
 num_neurons=train_n[0].shape[1]
 num_trials=Start_pos.shape[0]
