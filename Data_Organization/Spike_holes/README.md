@@ -15,11 +15,11 @@ The script generates a histogram to show the spike holes for the kilosort batch 
 
 Example from Kilosort bug:
 
-<img src="Examples/Kilosort_example.png" width="400" height="300">
+<img src="Examples/Kilosort_example.png" width="400">
 
 Method used in one of our sessions:
 
-<img src="Examples/Our_data_example.png" width="400" height="300">
+<img src="Examples/Our_data_example.png" width="400">
 
 
 ## How to use it
