@@ -37,7 +37,7 @@ batch_time=info_kilo.rez.ops.NTbuff/info_kilo.rez.ops.fs;                   % Wi
 
 %% Computing Spike holes
 
-a = diff(spike_time(find(diff(spike_time)>0.007))) / batch_time;            
+a = diff(spike_time(find(diff(spike_time)>0.0065))) / batch_time;            
 
 % Figure to show if we have "spike hole". We should have peaks in integers (1,2,3...) 
 figure()
