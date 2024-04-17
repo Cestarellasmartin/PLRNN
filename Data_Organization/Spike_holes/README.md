@@ -15,11 +15,11 @@ The script generates a histogram to show the spike holes for the kilosort batch 
 
 Example from Kilosort bug:
 
-<img src="Examples/Kilosort_example.png" width="400">
+<img src="Examples/Kilosort_example.PNG" width="400">
 
 Method used in one of our sessions:
 
-<img src="Examples/Our_data_example.png" width="400">
+<img src="Examples/Our_data_example.PNG" width="400">
 
 
 ## How to use it
@@ -37,5 +37,6 @@ Spike_hole_detection
    - There are spike holes: "I am sorry, you have spike holes"
 
    - There aren't spike holes: "Everything is Okey, you can continue analyzing"
+   - 
 =======
 
