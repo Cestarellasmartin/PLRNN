@@ -9,9 +9,9 @@ To ensure information continuity, the edges of these batches are processed sligh
 Reference: [Github_Kilosort](https://github.com/MouseLand/Kilosort/issues/594)
 
 ## Method
-The script generates a histogram to show the spike holes for the kilosort batch and quantify the result, telling you if you have "spike holes" in your data or not.
+The script generates a histogram to show the spike holes for the kilosort batch and quantify the result, telling you whether you have "spike holes" in your data.
 
-**Figure:** Histogram of the ratio between interspike intervals and the batch size. The used inter-spike intervals are longer than 6.5 ms. If the histogram shows the higher values in the integers (1,2,3,...) means that there are "spike holes" between the batches. 
+**Figure:** Histogram of the ratio between interspike intervals and the batch size. The used interspike intervals are longer than 6.5 ms. If the histogram shows higher values in the integers (1,2,3,...), it means that there are "spike holes" between the batches. 
 
 Example from Kilosort bug:
 
