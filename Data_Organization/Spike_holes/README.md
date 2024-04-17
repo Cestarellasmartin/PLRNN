@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Detecting "Spike Holes"
 
 Kilosort bug in versions 2.5 and 3:
@@ -37,3 +38,6 @@ Spike_hole_detection
    - There are spike holes: "I am sorry, you have spike holes"
 
    - There aren't spike holes: "Everything is Okey, you can continue analyzing"
+=======
+
+>>>>>>> cfff016b9b49194b481e50fe2dd6ed2fa6e0765d
