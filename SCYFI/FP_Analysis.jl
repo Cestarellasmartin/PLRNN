@@ -870,8 +870,46 @@ end
 
 sub=Plots.plot(pp[1],pp[2],pp[3],pp[4],pp[5],pp[6],pp[7],pp[8],pp[9],layout=(3,3),size=(1024,720))
 
+##########################################################################################################################################
+##########################################################################################################################################
+##########################################################################################################################################
 
 
+pp=Vector{Plots.Plot}()
+for i in 1:9
+    ineu1=8#rand(1:14)
+    ineu2=9#rand(1:14)
+    id = Trial_id[i]
+    W₁ = data[2][id,:,:]
+    W₂ = data[3][id,:,:]
+    A = data[1]
+    h₁ = data[5]
+    h₂ = data[4]
+    id = Trial_id[i]
+    # Gamble Reward
+    matrix_FP=hcat(FP_trials[string(id)]...)'
+    # Gamble Reward
+    matrix_FP=hcat(FP_trials[string(id)]...)'
+    Gam_prob.=1
+    Reward_prob.=1
+    Virt_GReward = virtual_trials(cue_dist,Gam_prob,Reward_prob,safe_prob,iti_dist,EmpData[id][1,:])
+    # Safe Reward
+    Gam_prob.=0
+    Reward_safe=1.0
+    Virt_SReward = virtual_trials(cue_dist,Gam_prob,Reward_prob,Reward_safe,iti_dist,EmpData[TS][1,:])
+    pca_model = fit(PCA, hcat(FP_trials[string(id)]...)'; maxoutdim=2)
+    p1=Plots.plot(
+        Plots.plot(Virt_SReward[:,ineu1],Virt_SReward[:,ineu2],tickfontsize=12,legend=false,
+        color=:orange,xlabel="Neuron $ineu1",ylabel="Neuron $ineu2",title="Trial $id"),
+    )
+    Plots.plot!(Virt_GReward[:,ineu1],Virt_GReward[:,ineu2],color=:green,
+    tickfontsize=12,legend=false)
+    Plots.scatter!(matrix_FP[:,ineu1],matrix_FP[:,ineu2],tickfontsize=12,legend=false,c=:red)
+    push!(pp, p1)
+end
+
+
+sub=Plots.plot(pp[1],pp[2],pp[3],pp[4],pp[5],pp[6],pp[7],pp[8],pp[9],layout=(3,3),size=(1024,720))
 ##########################################################################################################################################
 ##########################################################################################################################################
 ##########################################################################################################################################
