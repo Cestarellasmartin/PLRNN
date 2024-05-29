@@ -763,7 +763,7 @@ Plots.title!("FPs reduced dimensions")
 Time_Steps=1000000
 num_Z=14
 clipped=true
-Trial_id = [1,14,20,26,28,30,44,48,50]
+Trial_id = [44,45,46,47,48,49,50,51,52]
 
 pp=Vector{Plots.Plot}()
 for i in 1:9
