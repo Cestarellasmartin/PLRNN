@@ -323,7 +323,7 @@ plt.ylabel("FR (Zscore)")
 plt.show()
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SPECIFIC CLUSTERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-c1 = NeuronClusters[3]
+c1 = NeuronClusters[0]
 c2 = NeuronClusters[1]
 # cleaning clusters: All neurons must have at least one spike per trial
 c1_reg=np.where(sum((NeuronsFiringRateSession[:,c1]==0))==0)[0]
@@ -387,7 +387,7 @@ SpikeS=NeuralConvolution[:,c1_f]
 # Example of some neurons in consecutive trials
 time_length=np.linspace(0,SpikeS.shape[0]*0.02,SpikeS.shape[0])
 plt.figure()
-plt.plot(time_length,SpikeS[:,50])
+plt.plot(time_length,SpikeS[:,23])
 plt.xlim([600,608])
 
 # Computing the variance of each neuron per trial
