@@ -14,7 +14,7 @@ include("D:/_work_cestarellas/Analysis/PLRNN/SCYFI/src/utilities/helpers.jl")
 ##########################################################################################################################################
 # Organization of Fixed Points and Cycles limits determined in the trials of the session
 
-folder_path="D:\\_work_cestarellas\\Analysis\\PLRNN\\SCYFI\\data\\CE17_red_000"
+folder_path="D:\\_work_cestarellas\\Analysis\\PLRNN\\SCYFI\\data\\CE17_red_run_03"
 files=readdir(folder_path)
 num_trials=length(files)
 FP_trials=Dict()
@@ -144,6 +144,13 @@ label=["Stable" "Unstable" "Saddle"],
 yticks=(1:limit_do),
 legend=:outertopright)
 
+FP_num = ST_num+UNST_num+BIST_num
+
+io = open("test.txt", "w") do io
+    for x in FP_num
+      println(io, x)
+    end
+  end
 ##########################################################################################################################################
 ##########################################################################################################################################
 ##########################################################################################################################################
@@ -152,7 +159,7 @@ legend=:outertopright)
 TS=20
 
 # Loading Model
-data=Pickle.npyload("D:/_work_cestarellas/Analysis/PLRNN/SCYFI/data/Model_Parameters/Model_Parameters_CE17_red_001.pkl")
+data=Pickle.npyload("D:/_work_cestarellas/Analysis/PLRNN/SCYFI/data/Model_Parameters/Model_Parameters_CE17_red_002.pkl")
 # Defining Parameters of the Trial Studied
 A = data[1]
 W₁ = data[2][TS,:,:]
@@ -233,7 +240,7 @@ xlims!(0.5, num_fp+0.5)
 
 # Classification of FPs
 # Select Trial
-it=9
+it=7
 re =real(EV_trials[string(TS)][it])
 ir =imag(EV_trials[string(TS)][it])
 re_pos=findall(x->x==0,ir)
@@ -269,9 +276,9 @@ pie(labels, sizes, title="FP $it", legend=false)
 
 pca_model = fit(PCA, hcat(FP_trials[string(TS)]...)'; maxoutdim=2)
 #Trial 1
-group1=[1,2,6]
-group2=[4,3]
-group3=[5,7,8,9]
+group1=[1,2,5]
+group2=[7]
+group3=[3,4,6]
 #Trial 14
 #group1=[1,2]
 #group2=[3]
@@ -305,10 +312,10 @@ EmpData = Pickle.npyload("D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/neur
 EmpInput = Pickle.npyload("D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/neuralactivity/OFC/CE17_reduction/datasets/Training_inputs.npy")  
 
 matrix_FP=hcat(FP_trials[string(TS)]...)'
-# n1=[8,14,7,13,3,2]
-# n2=[9,10,10,8,9,1]
-n1=[14,9,3,11,3,2]
-n2=[9,8,1,8,5,1]
+n1=[8,14,7,13,3,2]
+n2=[9,10,10,8,9,1]
+#n1=[1,2,5]
+#n2=[7,3,4]
 pp=Vector{Plots.Plot}()
 for i in 1:6
     ineu1=n1[i]#rand(1:14)
@@ -763,7 +770,7 @@ Plots.title!("FPs reduced dimensions")
 Time_Steps=1000000
 num_Z=14
 clipped=true
-Trial_id = [44,45,46,47,48,49,50,51,52]
+Trial_id = [1,14,20,26,28,30,44,48,50]
 
 pp=Vector{Plots.Plot}()
 for i in 1:9
@@ -783,7 +790,7 @@ for i in 1:9
         Plots.plot(Gene_dat[990000:1000000,ineu1],Gene_dat[990000:1000000,ineu2],tickfontsize=12,legend=false,
             c=:red,xlabel="Neuron $ineu1",ylabel="Neuron $ineu2",title="Trial $id"),
     )
-    Plots.scatter!(matrix_FP[:,ineu1],matrix_FP[:,ineu2],tickfontsize=12,legend=false,c=:green)  
+    #Plots.scatter!(matrix_FP[:,ineu1],matrix_FP[:,ineu2],tickfontsize=12,legend=false,c=:green)  
     push!(pp, p1)
 end
 
