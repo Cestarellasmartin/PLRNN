@@ -143,7 +143,7 @@ def Data_format(X,S,name,save_directory):
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% LOADING DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-path='D:/_work_cestarellas/Analysis/PLRNN/Session_Selected/OFC/CE17_L6'   # Pathway of the data (behaviour & Spike activity)
+path='D:/_work_cestarellas/Analysis/PLRNN/Session_Selected/OFC/DM01_7_220524'   # Pathway of the data (behaviour & Spike activity)
 save_path = 'D:/_work_cestarellas/Analysis/PLRNN/noautoencoder/neuralactivity/OFC/DM01_7_DP'
 
 os.chdir(path)
@@ -248,7 +248,7 @@ else:
     last_trial = NoRespondingTrials[0]-1
     
 first_trial = 0
-last_trial = NoRespondingTrials[0]-1
+last_trial = NoRespondingTrials[3]-1
 
 # FIGURE: Plot behaviour performance
 plt.figure(figsize=(25,5))
@@ -458,28 +458,6 @@ plt.xticks(InitialTrial[0:-1:10],label_xticks[0:-1:10])
 plt.xlabel('Concatenated Trials')
 plt.ylabel("Animal's choice")
 plt.savefig('plots/Session_ConcatenatedTrials.png')
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# Histogram number of trials per concatenated trials and duration
-Num_trialsC = [FinalTrial[i]-InitialTrial[i]+1 for i in range(len(FinalTrial))]
-
-plt.figure()
-plt.hist(Num_trialsC)
-plt.xlim([0,5])
-plt.xlabel("Experimental Trials")
-plt.ylabel("Concatenated Trials")
-
-
-Time_trialsC = [DataNeuronModel[i].shape[0]*0.02 for i in range(len(FinalTrial))]
-
-plt.figure()
-plt.hist(Time_trialsC)
-plt.xlim([0,25])
-plt.xlabel("Time (s)")
-plt.ylabel("Concatenated Trials")
-
-
-
-
 
 # %%%%%%%%%%%%%%%%%%%%%%%% SELECTION TRAINING AND TEST TRIALS  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

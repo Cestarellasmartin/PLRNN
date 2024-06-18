@@ -14,7 +14,7 @@ include("D:/_work_cestarellas/Analysis/PLRNN/SCYFI/src/utilities/helpers.jl")
 ##########################################################################################################################################
 # Organization of Fixed Points and Cycles limits determined in the trials of the session
 
-folder_path="D:\\_work_cestarellas\\Analysis\\PLRNN\\SCYFI\\data\\CE17_red_000"
+folder_path="D:\\_work_cestarellas\\Analysis\\PLRNN\\SCYFI\\data\\CE17_red_run_03"
 files=readdir(folder_path)
 num_trials=length(files)
 FP_trials=Dict()
@@ -159,7 +159,7 @@ io = open("test.txt", "w") do io
 TS=20
 
 # Loading Model
-data=Pickle.npyload("D:/_work_cestarellas/Analysis/PLRNN/SCYFI/data/Model_Parameters/Model_Parameters_CE17_red_001.pkl")
+data=Pickle.npyload("D:/_work_cestarellas/Analysis/PLRNN/SCYFI/data/Model_Parameters/Model_Parameters_CE17_red_002.pkl")
 # Defining Parameters of the Trial Studied
 A = data[1]
 W₁ = data[2][TS,:,:]
@@ -905,55 +905,18 @@ for i in 1:9
     Reward_safe=1.0
     Virt_SReward = virtual_trials(cue_dist,Gam_prob,Reward_prob,Reward_safe,iti_dist,EmpData[TS][1,:])
     pca_model = fit(PCA, hcat(FP_trials[string(id)]...)'; maxoutdim=2)
-    println(sqrt(sum((Virt_GReward[end-5000:end,:]-Virt_SReward[end-5000:end,:]).^2)))
     p1=Plots.plot(
-        Plots.plot(Virt_SReward[end-5000:end,ineu1],Virt_SReward[end-5000:end,ineu2],tickfontsize=12,legend=false,
+        Plots.plot(Virt_SReward[:,ineu1],Virt_SReward[:,ineu2],tickfontsize=12,legend=false,
         color=:orange,xlabel="Neuron $ineu1",ylabel="Neuron $ineu2",title="Trial $id"),
     )
-    Plots.plot!(Virt_GReward[end-5000:end,ineu1],Virt_GReward[end-5000:end,ineu2],color=:green,
+    Plots.plot!(Virt_GReward[:,ineu1],Virt_GReward[:,ineu2],color=:green,
     tickfontsize=12,legend=false)
     Plots.scatter!(matrix_FP[:,ineu1],matrix_FP[:,ineu2],tickfontsize=12,legend=false,c=:red)
     push!(pp, p1)
 end
 
-gr()
+
 sub=Plots.plot(pp[1],pp[2],pp[3],pp[4],pp[5],pp[6],pp[7],pp[8],pp[9],layout=(3,3),size=(1024,720))
-savefig(sub,"C:\\Users\\cestarellas\\Documents\\FENS2024\\images\\6_Panel\\example_plot.pdf")
-
-vvv = []
-for i in 1:50
-    ineu1=8#rand(1:14)
-    ineu2=9#rand(1:14)
-    id = i
-    W₁ = data[2][id,:,:]
-    W₂ = data[3][id,:,:]
-    A = data[1]
-    h₁ = data[5]
-    h₂ = data[4]
-    # Gamble Reward
-    matrix_FP=hcat(FP_trials[string(id)]...)'
-    # Gamble Reward
-    matrix_FP=hcat(FP_trials[string(id)]...)'
-    Gam_prob.=1
-    Reward_prob.=1
-    Virt_GReward = virtual_trials(cue_dist,Gam_prob,Reward_prob,safe_prob,iti_dist,EmpData[id][1,:])
-    # Safe Reward
-    Gam_prob.=0
-    Reward_safe=1.0
-    Virt_SReward = virtual_trials(cue_dist,Gam_prob,Reward_prob,Reward_safe,iti_dist,EmpData[TS][1,:])
-    pca_model = fit(PCA, hcat(FP_trials[string(id)]...)'; maxoutdim=2)
-    vk = sqrt(sum((Virt_GReward[end-5000:end,:]-Virt_SReward[end-5000:end,:]).^2))
-    push!(vvv,vk)
-    println(sqrt(sum((Virt_GReward[end-5000:end,:]-Virt_SReward[end-5000:end,:]).^2)))
-end
-
-plot(vvv)
-##########################################################################################################################################
-##########################################################################################################################################
-##########################################################################################################################################
-
-
-
 ##########################################################################################################################################
 ##########################################################################################################################################
 ##########################################################################################################################################
