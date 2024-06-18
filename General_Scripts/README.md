@@ -25,8 +25,11 @@ Main script: Klausberger_organisation
 
 Organization of the recording data from Phenosys system. 
 
-The 
-
+The output files generated are:
+- Spike activity ("Filename_SpikeActivity.mat"): Spike time for each neuron in sampling points. Rows -> Times, Columns -> Neurons.
+- Spike parameters ("Filename_Spike_features.mat"): Waveform parameters for each cluster / neuron.
+- Wheel movement ("Filename_Wheel.mat): movement of the wheel reseting the movement to 0 in each trial.
+- Metadata ("Filename_Metadata.mat"): Information about the experiment and the data collection.
 ## Spike Holes Detection
 
 Language: Matlab
