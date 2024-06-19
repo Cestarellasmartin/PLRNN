@@ -21,9 +21,16 @@ The main analysis are:
 ## Phenosys Preprocess
 
 Language: Matlab
+
 Main script: Klausberger_organisation
 
 Organization of the recording data from Phenosys system. 
+
+The needed files:
+- 'amplifier.dat'
+- 'time.dat'
+- 'digitalin.dat
+- Files from kilosort: params.py, spike_times.npy, spike_temaplates.npy, spike_clusters.npy, amplitudes.npy, pc_features.npy, pc_features_id.npy, channel_positions.npy, templates.npy, whitening_mat_inv.npy, cluster_groups.csv, cluster_group.tsv
 
 The output files generated are:
 - Spike activity ("Filename_SpikeActivity.mat"): Spike time for each neuron in sampling points. Rows -> Times, Columns -> Neurons.
@@ -33,6 +40,8 @@ The output files generated are:
 ## Spike Holes Detection
 
 Language: Matlab
-Main script: 
-Environtment: 
+
+Main script:  Spike_hole_detection.mat
+
+The information of this script is described in the file Readme of its folder.
 
