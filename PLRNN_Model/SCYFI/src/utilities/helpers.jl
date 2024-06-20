@@ -294,6 +294,35 @@ function get_latent_time_series(time_steps:: Integer,
     return trajectory
 end
 
+"""
+Generate the time series from External Inputs by iteravely applying the shPLRNN
+shPLRNN
+"""
+function get_latent_input_series(time_steps:: Integer,     
+    A::AbstractVector,
+    W₁::AbstractMatrix,
+    W₂::AbstractMatrix,
+    h₁::AbstractVector,
+    h₂::AbstractVector,
+    ES::AbstractMatrix,
+    dz::Integer;
+    z_0:: Array= nothing,
+    is_clipped::Bool=false)
+    if z_0 === nothing
+        z = transpose(randn(1,dz))
+    else
+        z = z_0
+    end
+    trajectory = Array{Array}(undef, time_steps)
+    trajectory[1] = z
+    for t = 2:time_steps
+        i = ES[t,:]
+        z = latent_istep(z,i, A, W₁, W₂, h₁, h₂,C, is_clipped)
+        trajectory[t] = z
+    end
+    return trajectory
+end
+
 
 """
 PLRNN step
@@ -320,6 +349,25 @@ function  latent_step(
     end
 end
 
+"""
+shPLRNN step with External Inputs
+"""
+function  latent_istep(
+    z::AbstractArray,
+    i::AbstractArray,
+    A::AbstractVector,
+    W₁::AbstractMatrix,
+    W₂::AbstractMatrix,
+    h₁::AbstractVector,
+    h₂::AbstractVector,
+    C::AbstractMatrix,
+    is_clipped::Bool=false)
+    if is_clipped
+        return A .* z .+ W₁ * (max.(W₂ * z .+ h₂,0) .- max.(W₂ * z, 0)) .+ h₁ .+ C*i
+    else
+        return A .* z .+ W₁ * max.(W₂ * z .+ h₂,0) .+ h₁ .+ C*i
+    end
+end
 
 
 """
