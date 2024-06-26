@@ -304,6 +304,7 @@ function get_latent_input_series(time_steps:: Integer,
     W₂::AbstractMatrix,
     h₁::AbstractVector,
     h₂::AbstractVector,
+    C::AbstractMatrix,
     ES::AbstractMatrix,
     dz::Integer;
     z_0:: Array= nothing,
