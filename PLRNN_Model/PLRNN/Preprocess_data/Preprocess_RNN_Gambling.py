@@ -353,11 +353,13 @@ Neu_sel=np.where(NeuKernelS<1)[0]
 NeuralConvolutionS = NeuralConvolutionS[:,Neu_sel]
 
 #%%
-temp_vec = np.linspace(0,10000,10000)*0.02
+temp_vec = np.linspace(1000,5000,4000)*0.02
 plt.figure()
-plt.plot(temp_vec,NeuralConvolutionS[:10000,:])
+plt.plot(temp_vec,NeuralConvolutionS[1000:5000,10])
 plt.xlabel("Time (s)")
+plt.savefig('D:/_work_cestarellas/Meetings/Report/Figures/Figure3/Trajectory.eps')
 print("Neurons: ",NeuralConvolutionS.shape[1])
+
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% DATA PREPROCESS FOR PLRNN MODEL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 LastTrial = Beh_Matrix.shape[0]
@@ -489,6 +491,16 @@ DataInputSession = DataInputModel
 
 assert len(DataNeuronTest)==len(DataInputTest), "Input and Neurons doest not match in Test data"
 assert len(DataNeuronTraining)==len(DataInputTraining), "Input and Neurons doest not match in Training data"
+
+#%%%%%%
+temp_vec = np.linspace(0,len(DataNeuronTraining[10]),len(DataNeuronTraining[10]))*0.02
+plt.figure()
+plt.plot(temp_vec,DataNeuronTraining[10][:,14])
+plt.plot(temp_vec,DataNeuronTraining[10][:,30])
+plt.xlabel("Time (s)")
+plt.savefig('D:/_work_cestarellas/Meetings/Report/Figures/Figure3/Trajectory_Trial.eps')
+print("Neurons: ",NeuralConvolutionS.shape[1])
+
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  SAVE DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
